@@ -1,13 +1,26 @@
-//
-// Created by 64001830 on 4/23/25.
-//
+#include <vector>
+#include <string>
+#include <iostream>
+#include <numeric>
+#include <algorithm>
+#include <map> // Added for counting dice rolls
+#include <stdexcept> // Required for invalid_argument
+#include <limits>   // Required for numeric_limits
 
+// Forward declarations
+class Player;
+class Game;
+
+// =========================================================================
+// helpers.h
+// =========================================================================
 #ifndef LCR_HELPERS_H
 #define LCR_HELPERS_H
 
 // Contains utility functions for the LCR game
 class Helpers {
 public:
+    // Enum to specify direction around the circle
     enum Direction {
         Left,
         Right
