@@ -43,7 +43,7 @@ Game::Game(int numPlayers) {
     for (int i = 0; i < numPlayers; i++) {
         std::string name = "Player ";
         name += std::to_string(i);
-        this->players.push_back(Player(name, 5, i));
+        this->players.push_back(Player(name, 5, i, Player::PlayStyle::StealFromOpposite));
     }
 
     this->pot = 0;
@@ -90,7 +90,17 @@ void Game::play() {
                     case Dice::Dot:
                         break;
                     case Dice::Wild:
-                        // Todo: Implement stealing
+                        std::cout << "Wild! " << p.getName() << std::endl;
+                        for (Player &pl : this->players) {
+                            std::cout << "Before wild: " << pl.getName() << ": " << pl.getChips() << std::endl;
+                        }
+
+                        p.handleWild(this->players);
+
+                        for (Player &pl : this->players) {
+                            std::cout << "After wild: " << pl.getName() << ": " << pl.getChips() << std::endl;
+                        }
+
                         break;
                 }
             }
@@ -100,7 +110,7 @@ void Game::play() {
     std::cout << "Game over!" << std::endl;
 
     for (Player p : this->players) {
-        std::cout << p.getName() + " " + std::to_string(p.getChips()) << std::endl;
+        std::cout << p.getName() + ": " + std::to_string(p.getChips()) << std::endl;
     }
 }
 
