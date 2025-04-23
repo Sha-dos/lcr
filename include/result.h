@@ -29,20 +29,20 @@ public:
     Result(int id, const std::string& wName, Player::PlayStyle wStrat, int rounds, int numP, int initChips, const std::vector<Player::PlayStyle>& allStrats, bool isDraw = false)
             : gameId(id), winnerName(wName), winnerStrategy(wStrat), numberOfRounds(rounds),
               numberOfPlayers(numP), initialChipsPerPlayer(initChips), allPlayerStrategies(allStrats), draw(isDraw) {}
-
-    nlohmann::json to_json(const Result& result) {
-        return nlohmann::json{
-                {"winnerStrategy", Player::playStyleToString(result.winnerStrategy)},
-                {"draw", result.draw},
-                {"gameId", result.gameId},
-                {"winnerName", result.winnerName},
-                {"numberOfRounds", result.numberOfRounds},
-                {"numberOfPlayers", result.numberOfPlayers},
-                {"initialChipsPerPlayer", result.initialChipsPerPlayer},
-                {"allPlayerStrategies", result.allPlayerStrategies}
-        };
-    }
 };
+
+void to_json(nlohmann::json& j, const Result& result) {
+    j = nlohmann::json{
+            {"winnerStrategy", Player::playStyleToString(result.winnerStrategy)},
+            {"draw", result.draw},
+            {"gameId", result.gameId},
+            {"winnerName", result.winnerName},
+            {"numberOfRounds", result.numberOfRounds},
+            {"numberOfPlayers", result.numberOfPlayers},
+            {"initialChipsPerPlayer", result.initialChipsPerPlayer},
+            {"allPlayerStrategies", result.allPlayerStrategies}
+    };
+}
 
 // --- nlohmann/json integration for Result ---
 // Define how to convert Result class to/from JSON
