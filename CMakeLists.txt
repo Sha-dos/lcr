@@ -7,4 +7,5 @@ add_executable(lcr src/main.cpp
         include/game.h
         include/player.h
         include/dice.h
+        include/helpers.h
 )
