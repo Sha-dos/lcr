@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include "json.hpp"
 
 // Forward declaration
 // class Game; // Not strictly needed if we pass players vector
@@ -45,6 +46,18 @@ public:
         return chips < other.chips;
     }
 
+    // --- Static members for PlayStyle mapping ---
+    // Helper to convert PlayStyle enum to string
+    static std::string playStyleToString(PlayStyle style) {
+        switch (style) {
+            case StealFromHighest: return "StealFromHighest";
+            case StealFromLowest: return "StealFromLowest";
+            case StealFromOpposite: return "StealFromOpposite";
+            case StealOppositeConditional: return "StealOppositeConditional";
+            default: return "Unknown";
+        }
+    }
+
 private:
     std::string name;
     int chips;
@@ -52,6 +65,13 @@ private:
     PlayStyle playStyle;
     int totalNumPlayers;
 };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(Player::PlayStyle, {
+    {Player::PlayStyle::StealFromHighest, "StealFromHighest"},
+    {Player::PlayStyle::StealFromLowest, "StealFromLowest"},
+    {Player::PlayStyle::StealFromOpposite, "StealFromOpposite"},
+    {Player::PlayStyle::StealOppositeConditional, "StealOppositeConditional"}
+})
 
 // Constructor implementation
 Player::Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers)
@@ -165,7 +185,7 @@ bool Player::attemptSteal(std::vector<Player> &players) {
 
     // --- Perform the Steal ---
     if (targetPlayer) {
-        std::cout << "    (Wild) Steals 1 chip from " << targetPlayer->getName() << "." << std::endl;
+//        std::cout << "    (Wild) Steals 1 chip from " << targetPlayer->getName() << "." << std::endl;
         targetPlayer->removeChips(1);
         self->addChips(1);
         return true; // Steal successful

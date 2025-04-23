@@ -8,4 +8,5 @@ add_executable(lcr src/main.cpp
         include/player.h
         include/dice.h
         include/helpers.h
+        include/result.h
 )
