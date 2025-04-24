@@ -53,7 +53,14 @@ int main(int argc, char* argv[]) {
                 for (const auto& player : configData.at("players")) {
                     std::string name = player.at("name").get<std::string>();
                     int chips = player.at("chips").get<int>();
-                    Player::PlayStyle strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>() - 1);
+                    Player::PlayStyle strategy;
+
+                    if (player.at("strategy").get<int>() == -1) {
+                        strategy = static_cast<Player::PlayStyle>(rand() % (Player::PlayStyle::StealOppositeConditional + 1)); // Random strategy
+                    } else {
+                        strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>() - 1);
+                    }
+
                     int totalPlayers = player.at("totalPlayers").get<int>();
 
                     players.emplace_back(name, chips, index, strategy, totalPlayers);
@@ -228,24 +235,62 @@ int main(int argc, char* argv[]) {
     }
 
     // --- Export Results to JSON ---
-    std::string outputFilename = "lcr_simulation_results.json";
-    std::cout << "Exporting results to " << outputFilename << "..." << std::endl;
+//    std::string outputFilename = "lcr_simulation_results.json";
+//    std::cout << "Exporting results to " << outputFilename << "..." << std::endl;
+//
+//    try {
+//        json resultsJson = allResults; // Use the nlohmann magic to convert vector<Result> to json array
+//
+//        std::ofstream outFile(outputFilename);
+//        if (!outFile.is_open()) {
+//            throw std::runtime_error("Could not open file for writing: " + outputFilename);
+//        }
+//        // Write the JSON to the file with pretty printing (indentation)
+//        outFile << std::setw(4) << resultsJson << std::endl;
+//        outFile.close();
+//        std::cout << "Results successfully exported." << std::endl;
+//
+//    } catch (const json::exception& e) {
+//        std::cerr << "JSON Error: " << e.what() << std::endl;
+//        return 1;
+//    } catch (const std::exception& e) {
+//        std::cerr << "File I/O Error: " << e.what() << std::endl;
+//        return 1;
+//    }
 
+    // --- Export Results to CSV ---
+    std::string outputFilename = "lcr_simulation_results.csv";
     try {
-        json resultsJson = allResults; // Use the nlohmann magic to convert vector<Result> to json array
+        std::cout << "Exporting results to CSV..." << std::endl;
 
-        std::ofstream outFile(outputFilename);
+        bool writeHeader = false;
+        if (!std::filesystem::exists(outputFilename)) {
+            writeHeader = true;
+        }
+
+        std::ofstream outFile(outputFilename, std::ios::app);
+
         if (!outFile.is_open()) {
             throw std::runtime_error("Could not open file for writing: " + outputFilename);
         }
-        // Write the JSON to the file with pretty printing (indentation)
-        outFile << std::setw(4) << resultsJson << std::endl;
-        outFile.close();
-        std::cout << "Results successfully exported." << std::endl;
 
-    } catch (const json::exception& e) {
-        std::cerr << "JSON Error: " << e.what() << std::endl;
-        return 1;
+        if (writeHeader) {
+            outFile << "gameId,winnerName,winnerStrategy,numberOfRounds,numberOfPlayers,initialChipsPerPlayer" << std::endl;
+        }
+
+        for (const Result& result : allResults) {
+            outFile << result.gameId << ","
+                    << result.winnerName << ","
+                    << Player::playStyleToString(result.winnerStrategy) << ","
+                    << result.numberOfRounds << ","
+                    << result.numberOfPlayers << ","
+                    << result.initialChipsPerPlayer
+                    << std::endl;
+        }
+
+        outFile.close();
+        std::cout << "Results successfully exported to CSV." << std::endl;
+
     } catch (const std::exception& e) {
         std::cerr << "File I/O Error: " << e.what() << std::endl;
         return 1;

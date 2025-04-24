@@ -5,61 +5,61 @@
     {
       "name": "Player 1",
       "chips": 3,
-      "strategy": 1,
+      "strategy": -1,
       "totalPlayers": 10
     },
     {
       "name": "Player 2",
       "chips": 3,
-      "strategy": 1,
+      "strategy": -1,
       "totalPlayers": 10
     },
     {
       "name": "Player 3",
       "chips": 3,
-      "strategy": 1,
+      "strategy": -1,
       "totalPlayers": 10
     },
     {
       "name": "Player 4",
       "chips": 3,
-      "strategy": 1,
+      "strategy": -1,
       "totalPlayers": 10
     },
     {
       "name": "Player 5",
       "chips": 3,
-      "strategy": 4,
+      "strategy": -1,
       "totalPlayers": 10
     },
     {
       "name": "Player 6",
       "chips": 3,
-      "strategy": 1,
+      "strategy": -1,
       "totalPlayers": 10
     },
     {
       "name": "Player 7",
       "chips": 3,
-      "strategy": 1,
+      "strategy": -1,
       "totalPlayers": 10
     },
     {
       "name": "Player 8",
       "chips": 3,
-      "strategy": 1,
+      "strategy": -1,
       "totalPlayers": 10
     },
     {
       "name": "Player 9",
       "chips": 3,
-      "strategy": 1,
+      "strategy": -1,
       "totalPlayers": 10
     },
     {
       "name": "Player 10",
       "chips": 3,
-      "strategy": 1,
+      "strategy": -1,
       "totalPlayers": 10
     }
   ]
