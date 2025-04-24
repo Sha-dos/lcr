@@ -93,7 +93,7 @@ Game::Game(std::vector<Player> initialPlayers) : players(std::move(initialPlayer
 bool Game::keepPlay() {
     int count = 0;
     for (const Player& p : players) { if (p.getChips() > 0) { count++; } }
-    return count > 1;
+    return count >= 1;
 }
 
 // play implementation - Now returns a Result object
@@ -101,6 +101,35 @@ Result Game::play(int gameId) {
     int round = 0; // Start at round 0, increment at start of loop
     while (keepPlay()) {
         round++;
+
+        // Check if only one player has chips, if so, they need to roll all dots or wilds
+        if (std::count_if(players.begin(), players.end(), [](const Player& p) { return p.getChips() > 0; }) == 1) {
+            for (Player& p : players) {
+                if (p.getChips() > 0) {
+                    int numOfRolls = std::min(p.getChips(), 3);
+                    std::vector<Dice::Side> rollResults;
+                    rollResults.reserve(numOfRolls);
+
+                    for (int x = 0; x < numOfRolls; ++x) {
+                       rollResults.push_back(Dice::roll());
+                    }
+
+//                    std::cout << Dice::sideToString(rollResults.front()) << std::endl;
+
+                    // Check if all rolls are dots or wilds
+                    bool allDotsOrWilds = std::all_of(rollResults.begin(), rollResults.end(), [](Dice::Side side) {
+                        return side == Dice::Dot || side == Dice::Wild;
+                    });
+
+                    if (allDotsOrWilds) {
+                        return Result(gameId, p.getName(), p.getPlayStyle(), round, numOfPlayers, initialChips, initialStrategies);
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
         // std::cout << "\n--- Round " << round << " ---" << std::endl; // Verbose logging removed
         for (int i = 0; i < numOfPlayers; ++i) {
             Player &p = players[i];
@@ -117,8 +146,6 @@ Result Game::play(int gameId) {
             for (int j = 0; j < numOfRolls; ++j) {
                 Dice::Side result = Dice::roll();
                 rollCounts[result]++;
-                // Print roll results (Verbose)
-                // switch(result) { /* ... */ }
             }
             // std::cout << std::endl; // Verbose
 
@@ -175,8 +202,6 @@ Result Game::play(int gameId) {
                 }
             }
             // std::cout << "    Turn End: " << p.getName() << " has " << p.getChips() << " chips. Pot: " << this->pot << "." << std::endl; // Verbose
-
-            if (!keepPlay()) break; // Check again after turn actions
         } // End player turn loop
     } // End game loop
 

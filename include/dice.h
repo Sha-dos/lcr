@@ -41,6 +41,17 @@ public:
                 return Side::Dot;
         }
     }
+
+    static std::string sideToString(Side side) {
+        switch (side) {
+            case L: return "L";
+            case C: return "C";
+            case R: return "R";
+            case Dot: return "Dot";
+            case Wild: return "Wild";
+            default: return "Unknown";
+        }
+    }
 };
 
 #endif //LCR_DICE_H

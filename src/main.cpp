@@ -7,6 +7,19 @@
 using nlohmann::json;
 
 int main(int argc, char* argv[]) {
+    std::vector<Player> testPlayers = {
+        Player("Player 1", 0, 0, Player::PlayStyle::StealFromHighest, 3),
+        Player("Player 2", 1, 1, Player::PlayStyle::StealFromHighest, 3),
+        Player("Player 3", 0, 2, Player::PlayStyle::StealFromHighest, 3)
+    };
+
+    Game game(testPlayers);
+
+    game.play(0);
+
+    return 0;
+
+    // --- Initialize Game Parameters ---
     int numPlayers;
     int numSimulations;
     const int STARTING_CHIPS = 3;
