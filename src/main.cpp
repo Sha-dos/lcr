@@ -72,14 +72,14 @@ int main(int argc, char* argv[]) {
         std::cout << "LCR Strategy Simulation" << std::endl;
         std::cout << "=======================" << std::endl;
 
-        std::cout << "Enter the number of players per game (e.g., 3-8): ";
+        std::cout << "Enter the number of players per game: ";
         while (!(std::cin >> numPlayers) || numPlayers < 2) {
             std::cout << "Invalid input. Please enter a whole number >= 2: ";
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
 
-        std::cout << "Enter the number of simulations per strategy (e.g., 1000): ";
+        std::cout << "Enter the number of simulations to run: ";
         while (!(std::cin >> numSimulations) || numSimulations < 1) {
             std::cout << "Invalid input. Please enter a positive whole number: ";
             std::cin.clear();
@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
 
     // --- Run Simulations ---
     std::vector<Result> allResults;
-    allResults.reserve(numSimulations * 4); // Reserve space for all results (4 strategies)
+    allResults.reserve(numSimulations); // Reserve space for results
 
     int totalGamesRun = 0;
     std::cout << "\nRunning simulations..." << std::endl;
