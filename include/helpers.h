@@ -1,21 +1,20 @@
-#include <vector>
-#include <string>
-#include <iostream>
-#include <numeric>
-#include <algorithm>
-#include <map> // Added for counting dice rolls
-#include <stdexcept> // Required for invalid_argument
-#include <limits>   // Required for numeric_limits
-
-// Forward declarations
-class Player;
-class Game;
-
 // =========================================================================
 // helpers.h
 // =========================================================================
 #ifndef LCR_HELPERS_H
 #define LCR_HELPERS_H
+
+#include <vector>
+#include <string>
+#include <iostream>
+#include <numeric>
+#include <algorithm>
+#include <map>
+#include <stdexcept>
+#include <limits>
+#include <fstream>
+#include <iomanip>
+#include "result.h"
 
 // Contains utility functions for the LCR game
 class Helpers {

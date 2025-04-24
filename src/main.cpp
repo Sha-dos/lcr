@@ -7,17 +7,17 @@
 using nlohmann::json;
 
 int main(int argc, char* argv[]) {
-    std::vector<Player> testPlayers = {
-        Player("Player 1", 0, 0, Player::PlayStyle::StealFromHighest, 3),
-        Player("Player 2", 1, 1, Player::PlayStyle::StealFromHighest, 3),
-        Player("Player 3", 0, 2, Player::PlayStyle::StealFromHighest, 3)
-    };
-
-    Game game(testPlayers);
-
-    game.play(0);
-
-    return 0;
+//    std::vector<Player> testPlayers = {
+//        Player("Player 1", 0, 0, Player::PlayStyle::StealFromHighest, 3),
+//        Player("Player 2", 1, 1, Player::PlayStyle::StealFromHighest, 3),
+//        Player("Player 3", 0, 2, Player::PlayStyle::StealFromHighest, 3)
+//    };
+//
+//    Game game(testPlayers);
+//
+//    game.play(0);
+//
+//    return 0;
 
     // --- Initialize Game Parameters ---
     int numPlayers;
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
                 for (const auto& player : configData.at("players")) {
                     std::string name = player.at("name").get<std::string>();
                     int chips = player.at("chips").get<int>();
-                    Player::PlayStyle strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>());
+                    Player::PlayStyle strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>() - 1);
                     int totalPlayers = player.at("totalPlayers").get<int>();
 
                     players.emplace_back(name, chips, index, strategy, totalPlayers);

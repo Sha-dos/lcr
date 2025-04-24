@@ -17,18 +17,19 @@ public:
     Player::PlayStyle winnerStrategy;
     int numberOfRounds;
     int numberOfPlayers;
-    int initialChipsPerPlayer; // Assuming uniform start
-    std::vector<Player::PlayStyle> allPlayerStrategies; // Strategies used in this game
-    bool draw; // Flag if no winner (should be rare)
+    int initialChipsPerPlayer;
+    std::vector<Player::PlayStyle> allPlayerStrategies;
+    bool draw;
+    std::vector<std::vector<int>> chipHistory;
 
-    // Default constructor (optional, but can be useful)
+    // Default constructor
     Result() : gameId(-1), winnerName(""), winnerStrategy(Player::PlayStyle::StealFromHighest), // Default placeholder
                numberOfRounds(0), numberOfPlayers(0), initialChipsPerPlayer(0), draw(false) {}
 
     // Parameterized constructor
-    Result(int id, const std::string& wName, Player::PlayStyle wStrat, int rounds, int numP, int initChips, const std::vector<Player::PlayStyle>& allStrats, bool isDraw = false)
+    Result(int id, const std::string& wName, Player::PlayStyle wStrat, int rounds, int numP, int initChips, const std::vector<Player::PlayStyle>& allStrats, const std::vector<std::vector<int>>& chipHistory, bool isDraw = false)
             : gameId(id), winnerName(wName), winnerStrategy(wStrat), numberOfRounds(rounds),
-              numberOfPlayers(numP), initialChipsPerPlayer(initChips), allPlayerStrategies(allStrats), draw(isDraw) {}
+              numberOfPlayers(numP), initialChipsPerPlayer(initChips), allPlayerStrategies(allStrats), draw(isDraw), chipHistory(chipHistory) {}
 };
 
 void to_json(nlohmann::json& j, const Result& result) {
@@ -40,7 +41,8 @@ void to_json(nlohmann::json& j, const Result& result) {
             {"numberOfRounds", result.numberOfRounds},
             {"numberOfPlayers", result.numberOfPlayers},
             {"initialChipsPerPlayer", result.initialChipsPerPlayer},
-            {"allPlayerStrategies", result.allPlayerStrategies}
+            {"allPlayerStrategies", result.allPlayerStrategies},
+            {"chipHistory", result.chipHistory}
     };
 }
 
