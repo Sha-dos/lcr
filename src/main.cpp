@@ -19,6 +19,8 @@ int main(int argc, char* argv[]) {
 
     std::vector<Player> players;
 
+    int startingPlayer = 1;
+
     // --- Check for JSON Import ---
     if (argc > 1) {
         std::string jsonFilePath = argv[1];
@@ -30,6 +32,8 @@ int main(int argc, char* argv[]) {
 
                 // Read the number of simulations
                 numSimulations = configData.at("numSimulations").get<int>();
+
+                startingPlayer = configData.at("startingPlayer").get<int>();
 
                 // Read the players array
                 int index = 0;
@@ -148,6 +152,9 @@ int main(int argc, char* argv[]) {
 
     int totalGamesRun = 0;
     std::cout << "\nRunning simulations..." << std::endl;
+
+    std::rotate(players.begin(), players.begin() + startingPlayer - 1, players.end());
+    std::cout << "Starting player: " << players[0].getName() << std::endl;
 
     for (int i = 0; i < numSimulations; ++i) {
         try {
