@@ -2,7 +2,7 @@
   "numSimulations": 1000,
   "startingPlayer": 1,
   "outputType": "Totals",
-  "replayCount": 1,
+  "replayCount": 100,
   "players": [
     {
       "name": "Player 1",

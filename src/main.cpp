@@ -90,7 +90,9 @@ int main(int argc, char* argv[]) {
     std::cout << "\nRunning simulations..." << std::endl;
 
     std::rotate(players.begin(), players.begin() + startingPlayer - 1, players.end());
-    std::cout << "Starting player: " << players[0].getName() << std::endl;
+//    std::cout << "Starting player: " << players[0].getName() << std::endl;
+
+    int totalSimulations = numSimulations * (replayCount + 1);
 
     for (int j = 0; j <= replayCount; ++j) {
         for (int i = 0; i < numSimulations; ++i) {
@@ -110,7 +112,7 @@ int main(int argc, char* argv[]) {
             }
 
             std::cout << "[";
-            double progress = static_cast<double>(totalGamesRun) / numSimulations;
+            double progress = static_cast<double>(totalGamesRun) / totalSimulations;
             int pos = static_cast<int>(barWidth * progress);
             for (int i = 0; i < barWidth; ++i) {
                 if (i < pos) std::cout << "=";
