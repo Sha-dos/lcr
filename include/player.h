@@ -25,7 +25,7 @@ public:
     };
 
     // Constructor
-    Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers);
+    Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers, bool randomStrategy);
 
     // Modifiers for player's chips
     void addChips(int num);
@@ -35,7 +35,12 @@ public:
     int getChips() const;
     int getIndex() const;
     std::string getName() const;
-    PlayStyle getPlayStyle() const; // Added getter for playstyle
+    PlayStyle getPlayStyle() const;
+    bool randomStrategy = false;
+
+    void setStrategy(PlayStyle newStrategy) {
+        this->playStyle = newStrategy;
+    }
 
     // Handles the logic for attempting a steal when a 'Wild' is determined to result in a steal.
     // Returns true if a steal was successful, false otherwise.
@@ -83,8 +88,8 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Player::PlayStyle, {
 })
 
 // Constructor implementation
-Player::Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers)
-        : name(name), chips(chips), index(index), playStyle(playStyle), totalNumPlayers(totalPlayers) {}
+Player::Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers, bool randomStrategy)
+        : name(name), chips(chips), index(index), playStyle(playStyle), totalNumPlayers(totalPlayers), randomStrategy(randomStrategy) {}
 
 void Player::addChips(int num) {
     this->chips += num;

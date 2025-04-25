@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
     int i_defaultStrategy;
     Player::PlayStyle defaultStrategy = Player::PlayStyle::StealOppositeConditional;
     Output::OutputType outputType = Output::OutputType::All;
+    int replayCount = 0;
 
     int barWidth = 70;
 
@@ -36,137 +37,48 @@ int main(int argc, char* argv[]) {
 
     int startingPlayer = 1;
 
-    // --- Check for JSON Import ---
-    if (argc > 1) {
-        std::string jsonFilePath = argv[1];
-        std::ifstream jsonFile(jsonFilePath);
-        if (jsonFile.is_open()) {
-            try {
-                json configData;
-                jsonFile >> configData;
+    std::string jsonFilePath = argv[1];
+    std::ifstream jsonFile(jsonFilePath);
+    if (jsonFile.is_open()) {
+        try {
+            json configData;
+            jsonFile >> configData;
 
-                // Read the number of simulations
-                numSimulations = configData.at("numSimulations").get<int>();
+            // Read the number of simulations
+            numSimulations = configData.at("numSimulations").get<int>();
 
-                startingPlayer = configData.at("startingPlayer").get<int>();
+            startingPlayer = configData.at("startingPlayer").get<int>();
 
-                outputType = Output::stringToOutputType(configData.at("outputType").get<std::string>());
+            outputType = Output::stringToOutputType(configData.at("outputType").get<std::string>());
 
-                // Read the players array
-                int index = 0;
-                for (const auto& player : configData.at("players")) {
-                    std::string name = player.at("name").get<std::string>();
-                    int chips = player.at("chips").get<int>();
-                    Player::PlayStyle strategy;
+            replayCount = configData.at("replayCount").get<int>();
 
-                    if (player.at("strategy").get<int>() == -1) {
-                        strategy = static_cast<Player::PlayStyle>(rand() % (Player::PlayStyle::StealOppositeConditional + 1)); // Random strategy
-                    } else {
-                        strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>() - 1);
-                    }
+            // Read the players array
+            int index = 0;
+            for (const auto& player : configData.at("players")) {
+                std::string name = player.at("name").get<std::string>();
+                int chips = player.at("chips").get<int>();
+                Player::PlayStyle strategy;
 
-                    int totalPlayers = player.at("totalPlayers").get<int>();
-
-                    players.emplace_back(name, chips, index, strategy, totalPlayers);
-
-                    index++;
+                bool randomStrategy = false;
+                if (player.at("strategy").get<int>() == -1) {
+                    randomStrategy = true;
+                    strategy = static_cast<Player::PlayStyle>(rand() % (Player::PlayStyle::StealOppositeConditional + 1)); // Random strategy
+                } else {
+                    strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>() - 1);
                 }
 
-                std::cout << "Imported " << players.size() << " players and " << numSimulations << " simulations from JSON file." << std::endl;
-            } catch (const std::exception& e) {
-                std::cerr << "Error parsing JSON file: " << e.what() << std::endl;
-                return 1;
+                int totalPlayers = player.at("totalPlayers").get<int>();
+
+                players.emplace_back(name, chips, index, strategy, totalPlayers, randomStrategy);
+
+                index++;
             }
-        }
-    } else {
-        // --- Get Simulation Parameters ---
-        std::cout << "LCR Strategy Simulation" << std::endl;
-        std::cout << "=======================" << std::endl;
 
-        std::cout << "Enter the number of players per game: ";
-        while (!(std::cin >> numPlayers) || numPlayers < 2) {
-            std::cout << "Invalid input. Please enter a whole number >= 2: ";
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
-
-        std::cout << "Enter the number of simulations to run: ";
-        while (!(std::cin >> numSimulations) || numSimulations < 1) {
-            std::cout << "Invalid input. Please enter a positive whole number: ";
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
-
-        std::cout << "Special Strategy (one player will have it)" << std::endl;
-        std::cout << "1. Steal From Highest" << std::endl;
-        std::cout << "2. Steal From Lowest" << std::endl;
-        std::cout << "3. Steal From Opposite" << std::endl;
-        std::cout << "4. Steal Opposite Conditional" << std::endl;
-        std::cout << "Enter the number corresponding to the special strategy (1-4): ";
-        while (!(std::cin >> i_specialStrategy)) {
-            std::cout << "Invalid input. Please enter a positive whole number: ";
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
-
-        switch (i_specialStrategy) {
-            case 1:
-                specialStrategy = Player::PlayStyle::StealFromHighest;
-                break;
-            case 2:
-                specialStrategy = Player::PlayStyle::StealFromLowest;
-                break;
-            case 3:
-                specialStrategy = Player::PlayStyle::StealFromOpposite;
-                break;
-            case 4:
-                specialStrategy = Player::PlayStyle::StealOppositeConditional;
-                break;
-            default:
-                std::cout << "Invalid choice. Defaulting to Steal Opposite Conditional." << std::endl;
-                specialStrategy = Player::PlayStyle::StealOppositeConditional;
-                break;
-        }
-
-        std::cout << "Default Strategy (other players will have it)" << std::endl;
-        std::cout << "1. Steal From Highest" << std::endl;
-        std::cout << "2. Steal From Lowest" << std::endl;
-        std::cout << "3. Steal From Opposite" << std::endl;
-        std::cout << "4. Steal Opposite Conditional" << std::endl;
-        std::cout << "Enter the number corresponding to the special strategy (1-4): ";
-        while (!(std::cin >> i_defaultStrategy)) {
-            std::cout << "Invalid input. Please enter a positive whole number: ";
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
-
-        switch (i_defaultStrategy) {
-            case 1:
-                defaultStrategy = Player::PlayStyle::StealFromHighest;
-                break;
-            case 2:
-                defaultStrategy = Player::PlayStyle::StealFromLowest;
-                break;
-            case 3:
-                defaultStrategy = Player::PlayStyle::StealFromOpposite;
-                break;
-            case 4:
-                defaultStrategy = Player::PlayStyle::StealOppositeConditional;
-                break;
-            default:
-                std::cout << "Invalid choice. Defaulting to Steal Opposite Conditional." << std::endl;
-                defaultStrategy = Player::PlayStyle::StealOppositeConditional;
-                break;
-        }
-
-        for (int j = 0; j < numPlayers; ++j) {
-            if (j == 0) {
-                // First player gets the special strategy
-                players.push_back(Player("Player " + std::to_string(j + 1), STARTING_CHIPS, j, specialStrategy, numPlayers));
-            } else {
-                // Other players get the default strategy
-                players.push_back(Player("Player " + std::to_string(j + 1), STARTING_CHIPS, j, defaultStrategy, numPlayers));
-            }
+            std::cout << "Imported " << players.size() << " players and " << numSimulations << " simulations from JSON file." << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Error parsing JSON file: " << e.what() << std::endl;
+            return 1;
         }
     }
 
@@ -180,32 +92,42 @@ int main(int argc, char* argv[]) {
     std::rotate(players.begin(), players.begin() + startingPlayer - 1, players.end());
     std::cout << "Starting player: " << players[0].getName() << std::endl;
 
-    for (int i = 0; i < numSimulations; ++i) {
-        try {
-            Game lcrGame(std::vector<Player>(players.begin(), players.end()));
+    for (int j = 0; j <= replayCount; ++j) {
+        for (int i = 0; i < numSimulations; ++i) {
+            try {
+                Game lcrGame(std::vector<Player>(players.begin(), players.end()));
 
-            // Play the game and store the result
-            Result result = lcrGame.play(totalGamesRun++);
+                // Play the game and store the result
+                Result result = lcrGame.play(totalGamesRun++);
 
-            std::find_if(players.begin(), players.end(), [&result](const Player& p) {
-                return p.getName() == result.winnerName;
-            })->addWin();
+                std::find_if(players.begin(), players.end(), [&result](const Player &p) {
+                    return p.getName() == result.winnerName;
+                })->addWin();
 
-            allResults.push_back(result);
-        } catch (const std::exception& e) {
-            std::cerr << "Error during simulation " << totalGamesRun << ": " << e.what() << std::endl;
+                allResults.push_back(result);
+            } catch (const std::exception &e) {
+                std::cerr << "Error during simulation " << totalGamesRun << ": " << e.what() << std::endl;
+            }
+
+            std::cout << "[";
+            double progress = static_cast<double>(totalGamesRun) / numSimulations;
+            int pos = static_cast<int>(barWidth * progress);
+            for (int i = 0; i < barWidth; ++i) {
+                if (i < pos) std::cout << "=";
+                else if (i == pos) std::cout << ">";
+                else std::cout << " ";
+            }
+            std::cout << "] " << static_cast<int>(progress * 100.0) << " %\r";
+            std::cout.flush();
         }
 
-        std::cout << "[";
-        double progress = static_cast<double>(totalGamesRun) / numSimulations;
-        int pos = static_cast<int>(barWidth * progress);
-        for (int i = 0; i < barWidth; ++i) {
-            if (i < pos) std::cout << "=";
-            else if (i == pos) std::cout << ">";
-            else std::cout << " ";
+        if (replayCount > 0) {
+            for (Player &p : players) {
+                if (p.randomStrategy) {
+                    p.setStrategy(static_cast<Player::PlayStyle>(rand() % (Player::PlayStyle::StealOppositeConditional + 1)));
+                }
+            }
         }
-        std::cout << "] " << static_cast<int>(progress * 100.0) << " %\r";
-        std::cout.flush();
     }
 
     std::cout << std::endl;
