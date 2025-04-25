@@ -178,9 +178,16 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < numSimulations; ++i) {
         try {
-            Game lcrGame(players);
+            Game lcrGame(std::vector<Player>(players.begin(), players.end()));
+
             // Play the game and store the result
-            allResults.push_back(lcrGame.play(totalGamesRun++));
+            Result result = lcrGame.play(totalGamesRun++);
+
+            std::find_if(players.begin(), players.end(), [&result](const Player& p) {
+                return p.getName() == result.winnerName;
+            })->addWin();
+
+            allResults.push_back(result);
         } catch (const std::exception& e) {
             std::cerr << "Error during simulation " << totalGamesRun << ": " << e.what() << std::endl;
         }
@@ -205,13 +212,8 @@ int main(int argc, char* argv[]) {
     int winsStealFromLowest = 0;
     int winsStealFromOpposite = 0;
     int winsStealOppositeConditional = 0;
-    std::map<std::string, int> playerWins; // Map to store wins for each player
 
     for (Result r : allResults) {
-        if (!r.draw) { // Only count wins if the game was not a draw
-            playerWins[r.winnerName]++;
-        }
-
         if (r.winnerStrategy == Player::PlayStyle::StealFromHighest) {
             winsStealFromHighest++;
         } else if (r.winnerStrategy == Player::PlayStyle::StealFromLowest) {
@@ -230,10 +232,9 @@ int main(int argc, char* argv[]) {
     std::cout << "  Steal Opposite Conditional: " << winsStealOppositeConditional << std::endl;
 
     std::cout << "\nWins by player:" << std::endl;
-    for (const auto& [playerName, wins] : playerWins) {
-        std::cout << "  " << playerName << ": " << wins << " wins" << std::endl;
+    for (const Player& player : players) {
+        std::cout << "  " << player.getName() << ": " << player.getWins() << " wins (" << Player::playStyleToString(player.getPlayStyle()) << ")" << std::endl;
     }
-
     // --- Export Results to JSON ---
 //    std::string outputFilename = "lcr_simulation_results.json";
 //    std::cout << "Exporting results to " << outputFilename << "..." << std::endl;

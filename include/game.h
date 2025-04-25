@@ -38,37 +38,37 @@ public:
 };
 
 // Constructor implementation (uniform style)
-Game::Game(int numPlayers, int startingChips, Player::PlayStyle defaultStyle)
-        : numOfPlayers(numPlayers), pot(0), initialChips(startingChips) {
-    if (numPlayers < 2) throw std::invalid_argument("Game requires at least 2 players.");
-    if (startingChips <= 0) throw std::invalid_argument("Players must start with chips.");
-
-    initialStrategies.reserve(numPlayers);
-    players.reserve(numPlayers);
-    for (int i = 0; i < numPlayers; ++i) {
-        std::string name = "Player ";
-        name += std::to_string(i + 1);
-        players.emplace_back(name, startingChips, i, defaultStyle, numPlayers);
-        initialStrategies.push_back(defaultStyle);
-    }
-    // std::cout << "Game created with " << numPlayers << " players, " << startingChips << " chips each, using strategy: "
-    //           << Player::playStyleToString(defaultStyle) << std::endl; // Verbose logging removed for bulk runs
-}
+//Game::Game(int numPlayers, int startingChips, Player::PlayStyle defaultStyle)
+//        : numOfPlayers(numPlayers), pot(0), initialChips(startingChips) {
+//    if (numPlayers < 2) throw std::invalid_argument("Game requires at least 2 players.");
+//    if (startingChips <= 0) throw std::invalid_argument("Players must start with chips.");
+//
+//    initialStrategies.reserve(numPlayers);
+//    players.reserve(numPlayers);
+//    for (int i = 0; i < numPlayers; ++i) {
+//        std::string name = "Player ";
+//        name += std::to_string(i + 1);
+//        players.emplace_back(name, startingChips, i, defaultStyle, numPlayers);
+//        initialStrategies.push_back(defaultStyle);
+//    }
+//    // std::cout << "Game created with " << numPlayers << " players, " << startingChips << " chips each, using strategy: "
+//    //           << Player::playStyleToString(defaultStyle) << std::endl; // Verbose logging removed for bulk runs
+//}
 
 // Constructor implementation (mixed styles)
-Game::Game(const std::vector<Player::PlayStyle>& strategies, int startingChips)
-        : numOfPlayers(strategies.size()), pot(0), initialChips(startingChips), initialStrategies(strategies) {
-    if (numOfPlayers < 2) throw std::invalid_argument("Game requires at least 2 players.");
-    if (startingChips <= 0) throw std::invalid_argument("Players must start with chips.");
-
-    players.reserve(numOfPlayers);
-    for (int i = 0; i < numOfPlayers; ++i) {
-        std::string name = "Player ";
-        name += std::to_string(i + 1);
-        players.emplace_back(name, startingChips, i, strategies[i], numOfPlayers);
-    }
-    // std::cout << "Game created with " << numOfPlayers << " players, " << startingChips << " chips each, with mixed strategies." << std::endl;
-}
+//Game::Game(const std::vector<Player::PlayStyle>& strategies, int startingChips)
+//        : numOfPlayers(strategies.size()), pot(0), initialChips(startingChips), initialStrategies(strategies) {
+//    if (numOfPlayers < 2) throw std::invalid_argument("Game requires at least 2 players.");
+//    if (startingChips <= 0) throw std::invalid_argument("Players must start with chips.");
+//
+//    players.reserve(numOfPlayers);
+//    for (int i = 0; i < numOfPlayers; ++i) {
+//        std::string name = "Player ";
+//        name += std::to_string(i + 1);
+//        players.emplace_back(name, startingChips, i, strategies[i], numOfPlayers);
+//    }
+//    // std::cout << "Game created with " << numOfPlayers << " players, " << startingChips << " chips each, with mixed strategies." << std::endl;
+//}
 
 
 // Constructor implementation (taking vector of Player objects)

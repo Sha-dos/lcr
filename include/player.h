@@ -58,12 +58,21 @@ public:
         }
     }
 
+    void addWin() {
+        this->wins++;
+    }
+
+    int getWins() const {
+        return this->wins;
+    }
+
 private:
     std::string name;
     int chips;
     int index;
     PlayStyle playStyle;
     int totalNumPlayers;
+    int wins;
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(Player::PlayStyle, {
