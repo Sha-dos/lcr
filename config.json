@@ -1,6 +1,7 @@
 {
   "numSimulations": 1000,
   "startingPlayer": 1,
+  "outputType": "Totals",
   "players": [
     {
       "name": "Player 1",

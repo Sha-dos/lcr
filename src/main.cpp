@@ -3,6 +3,7 @@
 #include <sstream>
 #include "../include/game.h"
 #include "../include/json.hpp"
+#include "../include/output.h"
 
 using nlohmann::json;
 
@@ -27,6 +28,7 @@ int main(int argc, char* argv[]) {
     Player::PlayStyle specialStrategy = Player::PlayStyle::StealOppositeConditional;
     int i_defaultStrategy;
     Player::PlayStyle defaultStrategy = Player::PlayStyle::StealOppositeConditional;
+    Output::OutputType outputType = Output::OutputType::All;
 
     int barWidth = 70;
 
@@ -47,6 +49,8 @@ int main(int argc, char* argv[]) {
                 numSimulations = configData.at("numSimulations").get<int>();
 
                 startingPlayer = configData.at("startingPlayer").get<int>();
+
+                outputType = Output::stringToOutputType(configData.at("outputType").get<std::string>());
 
                 // Read the players array
                 int index = 0;
@@ -275,18 +279,33 @@ int main(int argc, char* argv[]) {
             throw std::runtime_error("Could not open file for writing: " + outputFilename);
         }
 
-        if (writeHeader) {
-            outFile << "gameId,winnerName,winnerStrategy,numberOfRounds,numberOfPlayers,initialChipsPerPlayer" << std::endl;
-        }
+        switch (outputType) {
+            case Output::OutputType::All:
+                if (writeHeader) {
+                    outFile << "gameId,winnerName,winnerStrategy,numberOfRounds,numberOfPlayers,initialChipsPerPlayer" << std::endl;
+                }
 
-        for (const Result& result : allResults) {
-            outFile << result.gameId << ","
-                    << result.winnerName << ","
-                    << Player::playStyleToString(result.winnerStrategy) << ","
-                    << result.numberOfRounds << ","
-                    << result.numberOfPlayers << ","
-                    << result.initialChipsPerPlayer
-                    << std::endl;
+                for (const Result& result : allResults) {
+                    outFile << result.gameId << ","
+                            << result.winnerName << ","
+                            << Player::playStyleToString(result.winnerStrategy) << ","
+                            << result.numberOfRounds << ","
+                            << result.numberOfPlayers << ","
+                            << result.initialChipsPerPlayer
+                            << std::endl;
+                }
+                break;
+            case Output::OutputType::Totals:
+                if (writeHeader) {
+                    outFile << "Highest,Lowest,Opposite, Opposite Conditional" << std::endl;
+                }
+
+                outFile << winsStealFromHighest << ","
+                        << winsStealFromLowest << ","
+                        << winsStealFromOpposite << ","
+                        << winsStealOppositeConditional
+                        << std::endl;
+                break;
         }
 
         outFile.close();

@@ -9,4 +9,5 @@ add_executable(lcr src/main.cpp
         include/dice.h
         include/helpers.h
         include/result.h
+        include/output.h
 )
