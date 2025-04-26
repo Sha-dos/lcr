@@ -4,6 +4,13 @@
 #include "../include/game.h"
 #include "../include/json.hpp"
 #include "../include/output.h"
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <condition_variable>
+#include <queue>
+#include <functional>
+#include "../include/threadPool.h"
 
 using nlohmann::json;
 
@@ -84,33 +91,84 @@ int main(int argc, char* argv[]) {
 
     // --- Run Simulations ---
     std::vector<Result> allResults;
-    allResults.reserve(numSimulations); // Reserve space for results
+    allResults.reserve(numSimulations * (replayCount + 1)); // Reserve space for all results
+    std::mutex results_mutex; // Protect access to allResults
 
-    int totalGamesRun = 0;
+    std::atomic<int> totalGamesRun{0};
     std::cout << "\nRunning simulations..." << std::endl;
 
     std::rotate(players.begin(), players.begin() + startingPlayer - 1, players.end());
-//    std::cout << "Starting player: " << players[0].getName() << std::endl;
 
     int totalSimulations = numSimulations * (replayCount + 1);
+    int maxThreads = std::thread::hardware_concurrency(); // Use available CPU cores
+    maxThreads = maxThreads > 0 ? maxThreads : 4; // Fallback if detection fails
 
+    ThreadPool pool(maxThreads);
+
+// Create atomic counters for tracking wins by strategy
+    std::atomic<int> winsStealFromHighest{0};
+    std::atomic<int> winsStealFromLowest{0};
+    std::atomic<int> winsStealFromOpposite{0};
+    std::atomic<int> winsStealOppositeConditional{0};
+
+    std::mutex playerMutex; // For updating player win counts
+
+// Submit all tasks to thread pool
     for (int j = 0; j <= replayCount; ++j) {
-        for (int i = 0; i < numSimulations; ++i) {
-            try {
-                Game lcrGame(std::vector<Player>(players.begin(), players.end()));
+        std::vector<Player> replayPlayers = players;
 
-                // Play the game and store the result
-                Result result = lcrGame.play(totalGamesRun++);
-
-                std::find_if(players.begin(), players.end(), [&result](const Player &p) {
-                    return p.getName() == result.winnerName;
-                })->addWin();
-
-                allResults.push_back(result);
-            } catch (const std::exception &e) {
-                std::cerr << "Error during simulation " << totalGamesRun << ": " << e.what() << std::endl;
+        // If replay count > 0, randomize strategies at each replay
+        if (j > 0 && replayCount > 0) {
+            for (Player &p : replayPlayers) {
+                if (p.randomStrategy) {
+                    p.setStrategy(static_cast<Player::PlayStyle>(rand() % (Player::PlayStyle::StealOppositeConditional + 1)));
+                }
             }
+        }
 
+        for (int i = 0; i < numSimulations; ++i) {
+            pool.enqueue([&, replayPlayers]() {
+                try {
+                    Game lcrGame((std::vector<Player>(replayPlayers)));
+                    int gameId = totalGamesRun.fetch_add(1);
+
+                    // Play the game and store the result
+                    Result result = lcrGame.play(gameId);
+
+                    // Update strategy win counts
+                    if (result.winnerStrategy == Player::PlayStyle::StealFromHighest) {
+                        winsStealFromHighest++;
+                    } else if (result.winnerStrategy == Player::PlayStyle::StealFromLowest) {
+                        winsStealFromLowest++;
+                    } else if (result.winnerStrategy == Player::PlayStyle::StealFromOpposite) {
+                        winsStealFromOpposite++;
+                    } else if (result.winnerStrategy == Player::PlayStyle::StealOppositeConditional) {
+                        winsStealOppositeConditional++;
+                    }
+
+                    {
+                        std::lock_guard<std::mutex> lock(playerMutex);
+                        // Update player win count
+                        std::find_if(players.begin(), players.end(), [&result](const Player &p) {
+                            return p.getName() == result.winnerName;
+                        })->addWin();
+                    }
+
+                    {
+                        std::lock_guard<std::mutex> lock(results_mutex);
+                        allResults.push_back(result);
+                    }
+                } catch (const std::exception &e) {
+                    std::cerr << "Error during simulation: " << e.what() << std::endl;
+                }
+            });
+        }
+    }
+
+// Progress bar update thread
+    std::thread progressThread([&]() {
+        int barWidth = 70;
+        while (totalGamesRun < totalSimulations) {
             std::cout << "[";
             double progress = static_cast<double>(totalGamesRun) / totalSimulations;
             int pos = static_cast<int>(barWidth * progress);
@@ -119,39 +177,26 @@ int main(int argc, char* argv[]) {
                 else if (i == pos) std::cout << ">";
                 else std::cout << " ";
             }
-            std::cout << "] " << static_cast<int>(progress * 100.0) << " %\r";
+            std::cout << "] " << static_cast<int>(progress * 100.0) << "% ";
+            std::cout << "Active: " << pool.getActiveTasks() << " Queued: " << pool.getQueueSize() << "\r";
             std::cout.flush();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+    });
 
-        if (replayCount > 0) {
-            for (Player &p : players) {
-                if (p.randomStrategy) {
-                    p.setStrategy(static_cast<Player::PlayStyle>(rand() % (Player::PlayStyle::StealOppositeConditional + 1)));
-                }
-            }
-        }
+// Wait for all tasks to complete
+    while(totalGamesRun < totalSimulations) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+// Complete the progress bar
+    if (progressThread.joinable()) {
+        progressThread.join();
     }
 
     std::cout << std::endl;
 
     std::cout << "\nSimulations complete. Total games run: " << totalGamesRun << std::endl;
-
-    int winsStealFromHighest = 0;
-    int winsStealFromLowest = 0;
-    int winsStealFromOpposite = 0;
-    int winsStealOppositeConditional = 0;
-
-    for (Result r : allResults) {
-        if (r.winnerStrategy == Player::PlayStyle::StealFromHighest) {
-            winsStealFromHighest++;
-        } else if (r.winnerStrategy == Player::PlayStyle::StealFromLowest) {
-            winsStealFromLowest++;
-        } else if (r.winnerStrategy == Player::PlayStyle::StealFromOpposite) {
-            winsStealFromOpposite++;
-        } else if (r.winnerStrategy == Player::PlayStyle::StealOppositeConditional) {
-            winsStealOppositeConditional++;
-        }
-    }
 
     std::cout << "Wins by strategy:" << std::endl;
     std::cout << "  Steal From Highest: " << winsStealFromHighest << std::endl;

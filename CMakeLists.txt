@@ -10,4 +10,5 @@ add_executable(lcr src/main.cpp
         include/helpers.h
         include/result.h
         include/output.h
+        include/threadPool.h
 )
