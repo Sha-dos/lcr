@@ -167,10 +167,15 @@ int main(int argc, char* argv[]) {
 
 // Progress bar update thread
     std::thread progressThread([&]() {
-        int barWidth = 70;
+        const int threadBarWidth = 30;  // Width for thread progress bars
+
         while (totalGamesRun < totalSimulations) {
-            std::cout << "[";
+            // Clear terminal and reset cursor
+            std::cout << "\033[H\033[J";
+
+            // Display overall progress
             double progress = static_cast<double>(totalGamesRun) / totalSimulations;
+            std::cout << "Overall: [";
             int pos = static_cast<int>(barWidth * progress);
             for (int i = 0; i < barWidth; ++i) {
                 if (i < pos) std::cout << "=";
@@ -178,10 +183,44 @@ int main(int argc, char* argv[]) {
                 else std::cout << " ";
             }
             std::cout << "] " << static_cast<int>(progress * 100.0) << "% ";
-            std::cout << "Active: " << pool.getActiveTasks() << " Queued: " << pool.getQueueSize() << "\r";
+            std::cout << "(" << totalGamesRun << "/" << totalSimulations << ")" << std::endl;
+
+            // Display thread status
+            std::cout << "\nThread Status:" << std::endl;
+            const auto& threads = pool.getThreadStatus();
+            for (size_t i = 0; i < threads.size(); ++i) {
+                std::cout << "Thread " << i << ": ";
+                if (threads[i].active) {
+                    std::cout << "[";
+                    for (int j = 0; j < threadBarWidth; ++j) {
+                        std::cout << "=";
+                    }
+                    std::cout << "] ACTIVE (Task #" << threads[i].taskId << ")";
+                } else {
+                    std::cout << "[";
+                    for (int j = 0; j < threadBarWidth; ++j) {
+                        std::cout << " ";
+                    }
+                    std::cout << "] IDLE";
+                }
+                std::cout << std::endl;
+            }
+
+            std::cout << "\nActive Tasks: " << pool.getActiveTasks()
+                      << " | Queued Tasks: " << pool.getQueueSize() << std::endl;
+
             std::cout.flush();
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+
+        // Show final 100% progress
+        std::cout << "\033[H\033[J";
+        std::cout << "Overall: [";
+        for (int i = 0; i < barWidth; ++i) {
+            std::cout << "=";
+        }
+        std::cout << "] 100% (" << totalGamesRun << "/" << totalSimulations << ")" << std::endl;
+        std::cout.flush();
     });
 
 // Wait for all tasks to complete

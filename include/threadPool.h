@@ -21,14 +21,29 @@ private:
     std::atomic<bool> stop{false};
     std::atomic<int> active_tasks{0};
 
+    struct ThreadInfo {
+        int id;
+        std::atomic<bool> active{false};
+        std::atomic<int> taskId{-1};
+    };
+
+    std::vector<ThreadInfo> threadInfo;
+
 public:
     ThreadPool(size_t threads) {
+        threadInfo.resize(threads);
+
         for(size_t i = 0; i < threads; ++i) {
-            workers.emplace_back([this] {
+            threadInfo[i].id = i;
+
+            workers.emplace_back([this, i] {
                 while(true) {
                     std::function<void()> task;
                     {
                         std::unique_lock<std::mutex> lock(queue_mutex);
+                        threadInfo[i].active = false;
+                        threadInfo[i].taskId = -1;
+
                         condition.wait(lock, [this] {
                             return stop || !tasks.empty();
                         });
@@ -41,12 +56,16 @@ public:
                         tasks.pop();
                     }
 
-                    active_tasks++;
+                    threadInfo[i].active = true;
+                    threadInfo[i].taskId = active_tasks.fetch_add(1);
+
                     task();
+
                     active_tasks--;
                 }
             });
         }
+    }
     }
 
     template<class F>
@@ -78,6 +97,10 @@ public:
                 worker.join();
             }
         }
+    }
+
+    const std::vector<ThreadInfo>& getThreadStatus() const {
+        return threadInfo;
     }
 };
 
