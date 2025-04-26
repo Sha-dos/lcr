@@ -25,24 +25,53 @@ private:
         int id;
         std::atomic<bool> active{false};
         std::atomic<int> taskId{-1};
+
+        ThreadInfo(const ThreadInfo&) = delete;
+        ThreadInfo& operator=(const ThreadInfo&) = delete;
+
+        ThreadInfo(ThreadInfo&& other) noexcept : id(other.id) {
+            bool expected = other.active.load();
+            active.store(expected);
+
+            int expectedId = other.taskId.load();
+            taskId.store(expectedId);
+        }
+
+        ThreadInfo& operator=(ThreadInfo&& other) noexcept {
+            if (this != &other) {
+                id = other.id;
+
+                bool expected = other.active.load();
+                active.store(expected);
+
+                int expectedId = other.taskId.load();
+                taskId.store(expectedId);
+            }
+            return *this;
+        }
+
+        ThreadInfo() : id(0) {}
+
+        explicit ThreadInfo(int thread_id) : id(thread_id) {}
     };
 
-    std::vector<ThreadInfo> threadInfo;
+    std::vector<std::unique_ptr<ThreadInfo>> threadInfo;
 
 public:
     ThreadPool(size_t threads) {
-        threadInfo.resize(threads);
+        threadInfo.reserve(threads);
+        workers.reserve(threads);
 
         for(size_t i = 0; i < threads; ++i) {
-            threadInfo[i].id = i;
+            threadInfo.emplace_back(std::make_unique<ThreadInfo>(static_cast<int>(i)));
 
             workers.emplace_back([this, i] {
                 while(true) {
                     std::function<void()> task;
                     {
                         std::unique_lock<std::mutex> lock(queue_mutex);
-                        threadInfo[i].active = false;
-                        threadInfo[i].taskId = -1;
+                        threadInfo[i]->active = false;
+                        threadInfo[i]->taskId = -1;
 
                         condition.wait(lock, [this] {
                             return stop || !tasks.empty();
@@ -56,8 +85,8 @@ public:
                         tasks.pop();
                     }
 
-                    threadInfo[i].active = true;
-                    threadInfo[i].taskId = active_tasks.fetch_add(1);
+                    threadInfo[i]->active = true;
+                    threadInfo[i]->taskId = active_tasks.fetch_add(1);
 
                     task();
 
@@ -65,7 +94,6 @@ public:
                 }
             });
         }
-    }
     }
 
     template<class F>
@@ -99,7 +127,7 @@ public:
         }
     }
 
-    const std::vector<ThreadInfo>& getThreadStatus() const {
+    const std::vector<std::unique_ptr<ThreadInfo>>& getThreadStatus() const {
         return threadInfo;
     }
 };

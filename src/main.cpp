@@ -190,12 +190,12 @@ int main(int argc, char* argv[]) {
             const auto& threads = pool.getThreadStatus();
             for (size_t i = 0; i < threads.size(); ++i) {
                 std::cout << "Thread " << i << ": ";
-                if (threads[i].active) {
+                if (threads[i]->active) {
                     std::cout << "[";
                     for (int j = 0; j < threadBarWidth; ++j) {
                         std::cout << "=";
                     }
-                    std::cout << "] ACTIVE (Task #" << threads[i].taskId << ")";
+                    std::cout << "] ACTIVE (Task #" << threads[i]->taskId << ")";
                 } else {
                     std::cout << "[";
                     for (int j = 0; j < threadBarWidth; ++j) {
