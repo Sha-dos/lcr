@@ -175,145 +175,90 @@ int main(int argc, char* argv[]) {
     }
 
 // Progress bar update thread
-    Okay, since the individual simulations are too fast for per-thread progress bars to be meaningful, let's change the progress display to show more useful aggregate information like the overall progress, simulation rate, estimated time remaining, and live win counts by strategy.
+    std::thread progressThread([&]() {
+        using namespace std::chrono;
+        auto startTime = high_resolution_clock::now();
+        long long lastGamesRun = 0;
+        double simsPerSecond = 0.0;
 
-    Modify main.cpp:
-
-    Replace the existing progressThread lambda function with the following updated version. You'll also need to include the <chrono> header at the top of main.cpp.
-
-    C++
-
-#include <iomanip>
-#include <fstream>
-#include <sstream>
-#include "../include/game.h" // Adjust path if needed
-#include "../include/json.hpp" // Adjust path if needed
-#include "../include/output.h" // Adjust path if needed
-#include <thread>
-#include <mutex>
-#include <atomic>
-#include <condition_variable>
-#include <queue>
-#include <functional>
-#include <chrono> // <-- Add this include
-#include <cmath>  // <-- Add this include for std::round
-#include "../include/threadPool.h" // Adjust path if needed
-
-// ... (using namespace std; using json = nlohmann::json; etc.) ...
-
-    int main(int argc, char* argv[]) {
-        // ... (initialization code remains the same up to ThreadPool creation) ...
-
-        ThreadPool pool(maxThreads);
-
-        // Atomic counters for strategy wins (remain the same)
-        std::atomic<int> winsStealFromHighest{0};
-        std::atomic<int> winsStealFromLowest{0};
-        std::atomic<int> winsStealFromOpposite{0};
-        std::atomic<int> winsStealOppositeConditional{0};
-
-        std::mutex playerMutex; // Remains the same
-
-        // Submit tasks (remains the same)
-        for (int j = 0; j <= replayCount; ++j) {
-            // ... (inner loop for numSimulations with pool.enqueue remains the same) ...
-            // Inside pool.enqueue lambda:
-            //  - Game lcrGame(...)
-            //  - Result result = lcrGame.play(gameId);
-            //  - Update strategy atomics (winsSteal...)
-            //  - Update player wins using find_if and playerMutex
-            //  - Push result to allResults using results_mutex
-            // ...
-        }
-
-
-        // --- NEW Progress Update Thread ---
-        std::thread progressThread([&]() {
-            using namespace std::chrono;
-            auto startTime = high_resolution_clock::now();
-            long long lastGamesRun = 0;
-            double simsPerSecond = 0.0;
-
-            while (true) {
-                long long currentGamesRun = totalGamesRun.load(std::memory_order_relaxed);
-                if (currentGamesRun >= totalSimulations) {
-                    break; // Exit loop if all games are done
-                }
-
-                auto now = high_resolution_clock::now();
-                duration<double> elapsedSinceStart = now - startTime;
-                double totalElapsedSeconds = elapsedSinceStart.count();
-
-                // Calculate simulations per second (avoiding division by zero)
-                if (totalElapsedSeconds > 0.5) { // Start calculating after a short delay
-                    simsPerSecond = static_cast<double>(currentGamesRun) / totalElapsedSeconds;
-                }
-
-                // Calculate ETR
-                std::string etrString = "Calculating...";
-                if (simsPerSecond > 0.1) { // Avoid ETR calculation if rate is too low/unstable
-                    long long remainingGames = totalSimulations - currentGamesRun;
-                    double etrSeconds = static_cast<double>(remainingGames) / simsPerSecond;
-
-                    if (etrSeconds >= 0) {
-                        long long etrSecsInt = static_cast<long long>(std::round(etrSeconds));
-                        long long etrMins = etrSecsInt / 60;
-                        etrSecsInt %= 60;
-                        std::ostringstream etrStream;
-                        etrStream << std::setfill('0') << std::setw(2) << etrMins << ":"
-                                  << std::setfill('0') << std::setw(2) << etrSecsInt;
-                        etrString = etrStream.str();
-                    } else {
-                        etrString = "Done soon";
-                    }
-                }
-
-                // Calculate overall progress
-                double progress = static_cast<double>(currentGamesRun) / totalSimulations;
-                int pos = static_cast<int>(barWidth * progress);
-
-                // --- Display ---
-                // Clear terminal and reset cursor
-                std::cout << "\033[H\033[J"; // Use this for Unix-like terminals (macOS, Linux)
-                // For Windows Command Prompt/PowerShell, consider system("cls");
-
-                // Overall Progress Bar
-                std::cout << "Overall Progress: [" << std::flush;
-                for (int i = 0; i < barWidth; ++i) {
-                    if (i < pos) std::cout << "=" << std::flush;
-                    else if (i == pos) std::cout << ">" << std::flush;
-                    else std::cout << " " << std::flush;
-                }
-                std::cout << "] " << static_cast<int>(progress * 100.0) << "% " << std::flush;
-                std::cout << "(" << currentGamesRun << "/" << totalSimulations << ")\n" << std::flush;
-
-                // Stats
-                std::cout << std::fixed << std::setprecision(1); // For sims/sec formatting
-                std::cout << "Rate: " << simsPerSecond << " sims/sec | ETR: " << etrString << "\n" << std::flush;
-                std::cout << "Threads: " << pool.getActiveTasks() << " active / " << maxThreads
-                          << " | Queue: " << pool.getQueueSize() << "\n\n" << std::flush;
-
-                // Live Strategy Wins
-                std::cout << "Current Wins by Strategy:\n" << std::flush;
-                std::cout << "  Steal From Highest:         " << winsStealFromHighest.load(std::memory_order_relaxed) << "\n" << std::flush;
-                std::cout << "  Steal From Lowest:          " << winsStealFromLowest.load(std::memory_order_relaxed) << "\n" << std::flush;
-                std::cout << "  Steal From Opposite:        " << winsStealFromOpposite.load(std::memory_order_relaxed) << "\n" << std::flush;
-                std::cout << "  Steal Opposite Conditional: " << winsStealOppositeConditional.load(std::memory_order_relaxed) << "\n" << std::flush;
-
-                // Update interval
-                std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Update 5 times/sec
+        while (true) {
+            long long currentGamesRun = totalGamesRun.load(std::memory_order_relaxed);
+            if (currentGamesRun >= totalSimulations) {
+                break;
             }
 
-            // --- Final 100% display ---
+            auto now = high_resolution_clock::now();
+            duration<double> elapsedSinceStart = now - startTime;
+            double totalElapsedSeconds = elapsedSinceStart.count();
+
+            if (totalElapsedSeconds > 0.5) { // Start calculating after a short delay
+                simsPerSecond = static_cast<double>(currentGamesRun) / totalElapsedSeconds;
+            }
+
+            // Calculate ETR
+            std::string etrString = "Calculating...";
+            if (simsPerSecond > 0.1) { // Avoid ETR calculation if rate is too low/unstable
+                long long remainingGames = totalSimulations - currentGamesRun;
+                double etrSeconds = static_cast<double>(remainingGames) / simsPerSecond;
+
+                if (etrSeconds >= 0) {
+                    long long etrSecsInt = static_cast<long long>(std::round(etrSeconds));
+                    long long etrMins = etrSecsInt / 60;
+                    etrSecsInt %= 60;
+                    std::ostringstream etrStream;
+                    etrStream << std::setfill('0') << std::setw(2) << etrMins << ":"
+                              << std::setfill('0') << std::setw(2) << etrSecsInt;
+                    etrString = etrStream.str();
+                } else {
+                    etrString = "Done soon";
+                }
+            }
+
+            // Calculate overall progress
+            double progress = static_cast<double>(currentGamesRun) / totalSimulations;
+            int pos = static_cast<int>(barWidth * progress);
+
+            // --- Display ---
+            // Clear terminal and reset cursor
             std::cout << "\033[H\033[J";
+
+            // Overall Progress Bar
             std::cout << "Overall Progress: [" << std::flush;
             for (int i = 0; i < barWidth; ++i) {
-                std::cout << "=" << std::flush;
+                if (i < pos) std::cout << "=" << std::flush;
+                else if (i == pos) std::cout << ">" << std::flush;
+                else std::cout << " " << std::flush;
             }
-            std::cout << "] 100% (" << totalGamesRun.load(std::memory_order_relaxed) << "/" << totalSimulations << ")\n" << std::flush;
-            // Optionally redisplay final stats/wins here if desired
-            std::cout.flush();
-        });
+            std::cout << "] " << static_cast<int>(progress * 100.0) << "% " << std::flush;
+            std::cout << "(" << currentGamesRun << "/" << totalSimulations << ")\n" << std::flush;
+
+            // Stats
+            std::cout << std::fixed << std::setprecision(1); // For sims/sec formatting
+            std::cout << "Rate: " << simsPerSecond << " sims/sec | ETR: " << etrString << "\n" << std::flush;
+            std::cout << "Threads: " << pool.getActiveTasks() << " active / " << maxThreads
+                      << " | Queue: " << pool.getQueueSize() << "\n\n" << std::flush;
+
+            // Live Strategy Wins
+            std::cout << "Current Wins by Strategy:\n" << std::flush;
+            std::cout << "  Steal From Highest:         " << winsStealFromHighest.load(std::memory_order_relaxed) << "\n" << std::flush;
+            std::cout << "  Steal From Lowest:          " << winsStealFromLowest.load(std::memory_order_relaxed) << "\n" << std::flush;
+            std::cout << "  Steal From Opposite:        " << winsStealFromOpposite.load(std::memory_order_relaxed) << "\n" << std::flush;
+            std::cout << "  Steal Opposite Conditional: " << winsStealOppositeConditional.load(std::memory_order_relaxed) << "\n" << std::flush;
+
+            // Update interval
+            std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Update 5 times/sec
+        }
+
+        // --- Final 100% display ---
+        std::cout << "\033[H\033[J";
+        std::cout << "Overall Progress: [" << std::flush;
+        for (int i = 0; i < barWidth; ++i) {
+            std::cout << "=" << std::flush;
+        }
+        std::cout << "] 100% (" << totalGamesRun.load(std::memory_order_relaxed) << "/" << totalSimulations << ")\n" << std::flush;
+
+        std::cout.flush();
+    });
 
 // Wait for all tasks to complete
     while(totalGamesRun < totalSimulations) {
