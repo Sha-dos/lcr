@@ -20,16 +20,16 @@ public:
     int initialChipsPerPlayer;
     std::vector<Player::PlayStyle> allPlayerStrategies;
     bool draw;
-    std::vector<std::vector<int>> chipHistory;
+//    std::vector<std::vector<int>> chipHistory;
 
     // Default constructor
     Result() : gameId(-1), winnerName(""), winnerStrategy(Player::PlayStyle::StealFromHighest), // Default placeholder
                numberOfRounds(0), numberOfPlayers(0), initialChipsPerPlayer(0), draw(false) {}
 
     // Parameterized constructor
-    Result(int id, const std::string& wName, Player::PlayStyle wStrat, int rounds, int numP, int initChips, const std::vector<Player::PlayStyle>& allStrats, const std::vector<std::vector<int>>& chipHistory, bool isDraw = false)
+    Result(int id, const std::string& wName, Player::PlayStyle wStrat, int rounds, int numP, int initChips, const std::vector<Player::PlayStyle>& allStrats, bool isDraw = false)
             : gameId(id), winnerName(wName), winnerStrategy(wStrat), numberOfRounds(rounds),
-              numberOfPlayers(numP), initialChipsPerPlayer(initChips), allPlayerStrategies(allStrats), draw(isDraw), chipHistory(chipHistory) {}
+              numberOfPlayers(numP), initialChipsPerPlayer(initChips), allPlayerStrategies(allStrats), draw(isDraw) {}
 };
 
 void to_json(nlohmann::json& j, const Result& result) {
@@ -42,7 +42,7 @@ void to_json(nlohmann::json& j, const Result& result) {
             {"numberOfPlayers", result.numberOfPlayers},
             {"initialChipsPerPlayer", result.initialChipsPerPlayer},
             {"allPlayerStrategies", result.allPlayerStrategies},
-            {"chipHistory", result.chipHistory}
+//            {"chipHistory", result.chipHistory}
     };
 }
 

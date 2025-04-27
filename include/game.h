@@ -98,12 +98,12 @@ bool Game::keepPlay() {
 
 // play implementation - Now returns a Result object
 Result Game::play(int gameId) {
-    std::vector<std::vector<int>> chipHistory;
-    std::vector<int> initialState;
-    for (const auto& player : players) {
-        initialState.push_back(player.getChips());
-    }
-    chipHistory.push_back(initialState);
+//    std::vector<std::vector<int>> chipHistory;
+//    std::vector<int> initialState;
+//    for (const auto& player : players) {
+//        initialState.push_back(player.getChips());
+//    }
+//    chipHistory.push_back(initialState);
 
     int round = 0; // Start at round 0, increment at start of loop
     while (keepPlay()) {
@@ -129,7 +129,7 @@ Result Game::play(int gameId) {
                     });
 
                     if (allDotsOrWilds) {
-                        return Result(gameId, p.getName(), p.getPlayStyle(), round, numOfPlayers, initialChips, initialStrategies, chipHistory);
+                        return Result(gameId, p.getName(), p.getPlayStyle(), round, numOfPlayers, initialChips, initialStrategies);
                     } else {
                         break;
                     }
@@ -209,11 +209,11 @@ Result Game::play(int gameId) {
                 }
             }
             // std::cout << "    Turn End: " << p.getName() << " has " << p.getChips() << " chips. Pot: " << this->pot << "." << std::endl; // Verbose
-            std::vector<int> currentState;
-            for (const auto& player : players) {
-                currentState.push_back(player.getChips());
-            }
-            chipHistory.push_back(currentState);
+//            std::vector<int> currentState;
+//            for (const auto& player : players) {
+//                currentState.push_back(player.getChips());
+//            }
+//            chipHistory.push_back(currentState);
         } // End player turn loop
     } // End game loop
 
@@ -229,16 +229,16 @@ Result Game::play(int gameId) {
 
     if (winner && winnerCount == 1) {
         // Normal win
-        winner->addChips(this->pot); // Winner gets the pot
+//        winner->addChips(this->pot); // Winner gets the pot
         // std::cout << "\n--- Game Over! Winner: " << winner->getName() << " ---" << std::endl; // Verbose
-        return Result(gameId, winner->getName(), winner->getPlayStyle(), round, numOfPlayers, initialChips, initialStrategies, chipHistory, false);
+        return Result(gameId, winner->getName(), winner->getPlayStyle(), round, numOfPlayers, initialChips, initialStrategies, false);
     } else {
         // Draw or unexpected state
         // std::cout << "\n--- Game Over! Draw or Error ---" << std::endl; // Verbose
         // In a draw, pot is lost? Or split? We'll assume lost for now.
         // Return a result indicating a draw, using a placeholder strategy or the first player's strategy.
         Player::PlayStyle placeholderStrat = initialStrategies.empty() ? Player::PlayStyle::StealFromHighest : initialStrategies[0];
-        return Result(gameId, "DRAW", placeholderStrat, round, numOfPlayers, initialChips, initialStrategies, chipHistory, true);
+        return Result(gameId, "DRAW", placeholderStrat, round, numOfPlayers, initialChips, initialStrategies, true);
     }
 }
 

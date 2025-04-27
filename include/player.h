@@ -10,9 +10,8 @@
 #include <iostream>
 #include <limits>
 #include "json.hpp"
-
-// Forward declaration
-// class Game; // Not strictly needed if we pass players vector
+#include <atomic>
+#include <utility>
 
 class Player {
 public:
@@ -64,11 +63,59 @@ public:
     }
 
     void addWin() {
-        this->wins++;
+        this->wins.fetch_add(1, std::memory_order_relaxed);
     }
 
     int getWins() const {
-        return this->wins;
+        return this->wins.load(std::memory_order_relaxed);
+    }
+
+    Player(Player&& other) noexcept
+            : name(std::move(other.name)),
+              chips(other.chips),
+              index(other.index),
+              playStyle(other.playStyle),
+              totalNumPlayers(other.totalNumPlayers),
+              randomStrategy(other.randomStrategy),
+              wins(other.wins.load(std::memory_order_relaxed))
+    {}
+    Player& operator=
+            (Player&& other) noexcept {
+        if (this != &other) {
+            name = std::move(other.name);
+            chips = other.chips;
+            index = other.index;
+            playStyle = other.playStyle;
+            totalNumPlayers = other.totalNumPlayers;
+            randomStrategy = other.randomStrategy;
+
+            wins.store(other.wins.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        }
+        return *this;
+    }
+
+    Player(const Player& other)
+            : name(other.name),
+              chips(other.chips),
+              index(other.index),
+              playStyle(other.playStyle),
+              totalNumPlayers(other.totalNumPlayers),
+              randomStrategy(other.randomStrategy),
+            // Load value from other's atomic and initialize this one
+              wins(other.wins.load(std::memory_order_relaxed))
+    {}
+
+    Player& operator=(const Player& other) {
+        if (this != &other) {
+            name = other.name;
+            chips = other.chips;
+            index = other.index;
+            playStyle = other.playStyle;
+            totalNumPlayers = other.totalNumPlayers;
+            randomStrategy = other.randomStrategy;
+            wins.store(other.wins.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        }
+        return *this;
     }
 
 private:
@@ -77,7 +124,7 @@ private:
     int index;
     PlayStyle playStyle;
     int totalNumPlayers;
-    int wins;
+    std::atomic<int> wins;
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(Player::PlayStyle, {
@@ -89,36 +136,36 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Player::PlayStyle, {
 
 // Constructor implementation
 Player::Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers, bool randomStrategy)
-        : name(name), chips(chips), index(index), playStyle(playStyle), totalNumPlayers(totalPlayers), randomStrategy(randomStrategy) {}
+        : name(name), chips(chips), index(index), playStyle(playStyle), totalNumPlayers(totalPlayers), randomStrategy(randomStrategy), wins(0) {}
 
-void Player::addChips(int num) {
+inline void Player::addChips(int num) {
     this->chips += num;
 }
 
-void Player::removeChips(int num) {
+inline void Player::removeChips(int num) {
     this->chips -= num;
     if (this->chips < 0) {
         this->chips = 0;
     }
 }
 
-int Player::getChips() const {
+inline int Player::getChips() const {
     return this->chips;
 }
 
-int Player::getIndex() const {
+inline int Player::getIndex() const {
     return this->index;
 }
 
-std::string Player::getName() const {
+inline std::string Player::getName() const {
     return this->name;
 }
 
-Player::PlayStyle Player::getPlayStyle() const {
+inline Player::PlayStyle Player::getPlayStyle() const {
     return this->playStyle;
 }
 
-bool Player::attemptSteal(std::vector<Player> &players) {
+inline bool Player::attemptSteal(std::vector<Player> &players) {
     // Find the current player ('self')
     Player* self = nullptr;
     for(Player& p : players) {
