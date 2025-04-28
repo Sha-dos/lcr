@@ -27,6 +27,10 @@ int main(int argc, char* argv[]) {
 //
 //    return 0;
 
+    // --- Random ---
+    std::random_device rd;
+    std::mt19937 rng(rd());
+
     // --- Initialize Game Parameters ---
     int numPlayers;
     int numSimulations;
@@ -70,7 +74,8 @@ int main(int argc, char* argv[]) {
                 bool randomStrategy = false;
                 if (player.at("strategy").get<int>() == -1) {
                     randomStrategy = true;
-                    strategy = static_cast<Player::PlayStyle>(rand() % (Player::PlayStyle::StealOppositeConditional + 1)); // Random strategy
+                    std::uniform_int_distribution<int> dist(0, Player::PlayStyle::StealOppositeConditional);
+                    strategy = static_cast<Player::PlayStyle>(dist(rng)); // Random strategy
                 } else {
                     strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>() - 1);
                 }
@@ -121,7 +126,8 @@ int main(int argc, char* argv[]) {
         if (j > 0 && replayCount > 0) {
             for (Player &p : replayPlayers) {
                 if (p.randomStrategy) {
-                    p.setStrategy(static_cast<Player::PlayStyle>(rand() % (Player::PlayStyle::StealOppositeConditional + 1)));
+                    std::uniform_int_distribution<int> dist(0, Player::PlayStyle::StealOppositeConditional);
+                    p.setStrategy(static_cast<Player::PlayStyle>(dist(rng)));
                 }
             }
         }
