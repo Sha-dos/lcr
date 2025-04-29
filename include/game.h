@@ -109,51 +109,50 @@ Result Game::play(int gameId) {
     while (keepPlay()) {
         round++;
 
-        // Check if only one player has chips, if so, they need to roll all dots or wilds
-        if (std::count_if(players.begin(), players.end(), [](const Player& p) { return p.getChips() > 0; }) == 1) {
-            for (Player& p : players) {
-                if (p.getChips() > 0) {
-                    int numOfRolls = std::min(p.getChips(), 3);
-                    std::vector<Dice::Side> rollResults;
-                    rollResults.reserve(numOfRolls);
-
-                    for (int x = 0; x < numOfRolls; ++x) {
-                       rollResults.push_back(Dice::roll());
-                    }
-
-//                    std::cout << Dice::sideToString(rollResults.front()) << std::endl;
-
-                    // Check if all rolls are dots or wilds
-                    bool allDotsOrWilds = std::all_of(rollResults.begin(), rollResults.end(), [](Dice::Side side) {
-                        return side == Dice::Dot || side == Dice::Wild;
-                    });
-
-                    if (allDotsOrWilds) {
-                        return Result(gameId, p.getName(), p.getPlayStyle(), round, numOfPlayers, initialChips, initialStrategies);
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-
         // std::cout << "\n--- Round " << round << " ---" << std::endl; // Verbose logging removed
         for (int i = 0; i < numOfPlayers; ++i) {
             Player &p = players[i];
-            if (!keepPlay()) break;
             if (p.getChips() == 0) continue;
-
-            // std::cout << "\n" << p.getName() << "'s turn (Chips: " << p.getChips() << ")" << std::endl; // Verbose
 
             int numOfRolls = std::min(p.getChips(), 3);
             if (numOfRolls == 0) continue;
-            // std::cout << "  Rolling " << numOfRolls << " dice: "; // Verbose
 
+            std::vector<Dice::Side> rollResults;
+            rollResults.reserve(numOfRolls);
             std::map<Dice::Side, int> rollCounts;
             for (int j = 0; j < numOfRolls; ++j) {
                 Dice::Side result = Dice::roll();
                 rollCounts[result]++;
+                rollResults.push_back(result);
             }
+
+            // Check if only one player has chips, if so, they need to roll all dots or wilds
+            bool onlyOnePlayerWithChips = (std::count_if(players.begin(), players.end(),
+                                                         [](const Player& p) { return p.getChips() > 0; }) == 1);
+
+            if (onlyOnePlayerWithChips) {
+                for (Player& p : players) {
+                    if (p.getChips() > 0) {
+                        bool allDotsOrWilds = std::all_of(rollResults.begin(), rollResults.end(),
+                                                          [](Dice::Side side) {
+                                                              return side == Dice::Dot || side == Dice::Wild;
+                                                          });
+
+                        if (allDotsOrWilds) {
+                            // Player wins - rolled all dots or wilds
+                            return Result(gameId, p.getName(), p.getPlayStyle(), round, numOfPlayers, initialChips, initialStrategies);
+                        } else {
+                            // Player must continue - didn't roll all dots or wilds
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // std::cout << "\n" << p.getName() << "'s turn (Chips: " << p.getChips() << ")" << std::endl; // Verbose
+
+            // std::cout << "  Rolling " << numOfRolls << " dice: "; // Verbose
+
             // std::cout << std::endl; // Verbose
 
             int netPassLeft = rollCounts[Dice::L];
@@ -217,29 +216,12 @@ Result Game::play(int gameId) {
         } // End player turn loop
     } // End game loop
 
-    // Game over: Determine winner and create Result
-    Player* winner = nullptr;
-    int winnerCount = 0;
-    for (Player &p : this->players) {
-        if (p.getChips() > 0) {
-            winner = &p;
-            winnerCount++;
-        }
-    }
-
-    if (winner && winnerCount == 1) {
-        // Normal win
-//        winner->addChips(this->pot); // Winner gets the pot
-        // std::cout << "\n--- Game Over! Winner: " << winner->getName() << " ---" << std::endl; // Verbose
-        return Result(gameId, winner->getName(), winner->getPlayStyle(), round, numOfPlayers, initialChips, initialStrategies, false);
-    } else {
-        // Draw or unexpected state
-        // std::cout << "\n--- Game Over! Draw or Error ---" << std::endl; // Verbose
-        // In a draw, pot is lost? Or split? We'll assume lost for now.
-        // Return a result indicating a draw, using a placeholder strategy or the first player's strategy.
-        Player::PlayStyle placeholderStrat = initialStrategies.empty() ? Player::PlayStyle::StealFromHighest : initialStrategies[0];
-        return Result(gameId, "DRAW", placeholderStrat, round, numOfPlayers, initialChips, initialStrategies, true);
-    }
+    // Draw or unexpected state
+    // std::cout << "\n--- Game Over! Draw or Error ---" << std::endl; // Verbose
+    // In a draw, pot is lost? Or split? We'll assume lost for now.
+    // Return a result indicating a draw, using a placeholder strategy or the first player's strategy.
+    Player::PlayStyle placeholderStrat = initialStrategies.empty() ? Player::PlayStyle::StealFromHighest : initialStrategies[0];
+    return Result(gameId, "DRAW", placeholderStrat, round, numOfPlayers, initialChips, initialStrategies, true);
 }
 
 #endif //LCR_GAME_H

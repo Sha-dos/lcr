@@ -155,14 +155,16 @@ int main(int argc, char* argv[]) {
                     Result result = lcrGame.play(gameId);
 
                     // Update strategy win counts
-                    if (result.winnerStrategy == Player::PlayStyle::StealFromHighest) {
-                        winsStealFromHighest++;
-                    } else if (result.winnerStrategy == Player::PlayStyle::StealFromLowest) {
-                        winsStealFromLowest++;
-                    } else if (result.winnerStrategy == Player::PlayStyle::StealFromOpposite) {
-                        winsStealFromOpposite++;
-                    } else if (result.winnerStrategy == Player::PlayStyle::StealOppositeConditional) {
-                        winsStealOppositeConditional++;
+                    if (!result.draw) {
+                        if (result.winnerStrategy == Player::PlayStyle::StealFromHighest) {
+                            winsStealFromHighest++;
+                        } else if (result.winnerStrategy == Player::PlayStyle::StealFromLowest) {
+                            winsStealFromLowest++;
+                        } else if (result.winnerStrategy == Player::PlayStyle::StealFromOpposite) {
+                            winsStealFromOpposite++;
+                        } else if (result.winnerStrategy == Player::PlayStyle::StealOppositeConditional) {
+                            winsStealOppositeConditional++;
+                        }
                     }
 
                     {
@@ -297,16 +299,47 @@ int main(int argc, char* argv[]) {
 
     std::cout << "\nSimulations complete. Total games run: " << totalGamesRun << std::endl;
 
-    std::cout << "Wins by strategy:" << std::endl;
-    std::cout << "  Steal From Highest: " << winsStealFromHighest << std::endl;
-    std::cout << "  Steal From Lowest: " << winsStealFromLowest << std::endl;
-    std::cout << "  Steal From Opposite: " << winsStealFromOpposite << std::endl;
-    std::cout << "  Steal Opposite Conditional: " << winsStealOppositeConditional << std::endl;
+
+    // --- Display Results ---
+    std::cout << "\nWins by strategy (sorted by most to least):" << std::endl;
+
+    const int columnWidth = 30;
+    const int numberWidth = 8;
+
+    std::vector<std::pair<std::string, int>> strategyWins = {
+            {"Steal From Highest", winsStealFromHighest.load()},
+            {"Steal From Lowest", winsStealFromLowest.load()},
+            {"Steal From Opposite", winsStealFromOpposite.load()},
+            {"Steal Opposite Conditional", winsStealOppositeConditional.load()}
+    };
+
+    std::sort(strategyWins.begin(), strategyWins.end(), [](const auto& a, const auto& b) {
+        return b.second < a.second;
+    });
+
+    int totalWins = winsStealFromHighest + winsStealFromLowest + winsStealFromOpposite + winsStealOppositeConditional;
+    int totalGames = totalGamesRun.load();
+    int draws = totalGames - totalWins;
+
+    for (const auto& [strategy, wins] : strategyWins) {
+        double percentage = (totalWins > 0) ? (static_cast<double>(wins) / (totalWins + draws)) * 100.0 : 0.0;
+        std::cout << "  " << std::left << std::setw(columnWidth) << strategy
+                  << std::setw(numberWidth) << wins << " "
+                  << std::fixed << std::setprecision(2) << percentage << "%" << std::endl;
+    }
+
+    double drawPercentage = (totalGames > 0) ? (static_cast<double>(draws) / totalGames) * 100.0 : 0.0;
+    std::cout << "  " << std::left << std::setw(columnWidth) << "Draws"
+              << std::setw(numberWidth) << draws << " "
+              << std::fixed << std::setprecision(2) << drawPercentage << "%" << std::endl;
 
     std::cout << "\nWins by player:" << std::endl;
     for (const Player& player : players) {
-        std::cout << "  " << player.getName() << ": " << player.getWins() << " wins (" << Player::playStyleToString(player.getPlayStyle()) << ")" << std::endl;
+        std::cout << "  " << std::left << std::setw(columnWidth) << player.getName()
+                  << std::setw(numberWidth) << player.getWins() << " ("
+                  << Player::playStyleToString(player.getPlayStyle()) << ")" << std::endl;
     }
+
     // --- Export Results to JSON ---
 //    std::string outputFilename = "lcr_simulation_results.json";
 //    std::cout << "Exporting results to " << outputFilename << "..." << std::endl;
@@ -324,7 +357,7 @@ int main(int argc, char* argv[]) {
 //        std::cout << "Results successfully exported." << std::endl;
 //
 //    } catch (const json::exception& e) {
-//        std::cerr << "JSON Error: " << e.what() << std::endl;
+//        std::cerr << "JSON Error: " <<  e.what() << std::endl;
 //        return 1;
 //    } catch (const std::exception& e) {
 //        std::cerr << "File I/O Error: " << e.what() << std::endl;
