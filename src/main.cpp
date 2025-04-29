@@ -31,14 +31,11 @@ int main(int argc, char* argv[]) {
     std::random_device rd;
     std::mt19937 rng(rd());
 
+    // -- Timer ---
+    auto start = std::chrono::high_resolution_clock::now();
+
     // --- Initialize Game Parameters ---
-    int numPlayers;
     int numSimulations;
-    const int STARTING_CHIPS = 3;
-    int i_specialStrategy;
-    Player::PlayStyle specialStrategy = Player::PlayStyle::StealOppositeConditional;
-    int i_defaultStrategy;
-    Player::PlayStyle defaultStrategy = Player::PlayStyle::StealOppositeConditional;
     Output::OutputType outputType = Output::OutputType::All;
     int replayCount = 0;
     bool randomStarter = false;
@@ -297,7 +294,10 @@ int main(int argc, char* argv[]) {
         return a.getIndex() < b.getIndex();
     });
 
-    std::cout << "\nSimulations complete. Total games run: " << totalGamesRun << std::endl;
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsedSinceStart = end - start;
+
+    std::cout << "\nSimulations complete. " << totalSimulations << " simulations ran in " << elapsedSinceStart.count() << "s" << std::endl;
 
 
     // --- Display Results ---
