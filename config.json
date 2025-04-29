@@ -1,6 +1,6 @@
 {
   "numSimulations": 1000,
-  "startingPlayer": 1,
+  "startingPlayer": -1,
   "outputType": "Totals",
   "replayCount": 100,
   "players": [

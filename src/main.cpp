@@ -41,6 +41,7 @@ int main(int argc, char* argv[]) {
     Player::PlayStyle defaultStrategy = Player::PlayStyle::StealOppositeConditional;
     Output::OutputType outputType = Output::OutputType::All;
     int replayCount = 0;
+    bool randomStarter = false;
 
     int barWidth = 70;
 
@@ -85,6 +86,12 @@ int main(int argc, char* argv[]) {
                 players.emplace_back(name, chips, index, strategy, totalPlayers, randomStrategy);
 
                 index++;
+            }
+
+            if (startingPlayer < 0) {
+                randomStarter = true;
+                std::uniform_int_distribution<int> playerDist(1, players.size());
+                startingPlayer = playerDist(rng);
             }
 
             std::cout << "Imported " << players.size() << " players and " << numSimulations << " simulations from JSON file." << std::endl;
@@ -133,6 +140,12 @@ int main(int argc, char* argv[]) {
         }
 
         for (int i = 0; i < numSimulations; ++i) {
+            if (randomStarter) {
+                std::uniform_int_distribution<int> playerDist(1, players.size());
+                startingPlayer = playerDist(rng);
+                std::rotate(players.begin(), players.begin() + startingPlayer - 1, players.end());
+            }
+
             pool.enqueue([&, replayPlayers]() {
                 try {
                     Game lcrGame((std::vector<Player>(replayPlayers)));
@@ -277,6 +290,10 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << std::endl;
+
+    std::sort(players.begin(), players.end(), [](const Player& a, const Player& b) {
+        return a.getIndex() < b.getIndex();
+    });
 
     std::cout << "\nSimulations complete. Total games run: " << totalGamesRun << std::endl;
 
