@@ -62,6 +62,8 @@ int main(int argc, char* argv[]) {
 
             replayCount = configData.at("replayCount").get<int>();
 
+            int totalPlayers = configData.at("totalPlayers").get<int>();
+
             // Read the players array
             int index = 0;
             for (const auto& player : configData.at("players")) {
@@ -77,8 +79,6 @@ int main(int argc, char* argv[]) {
                 } else {
                     strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>() - 1);
                 }
-
-                int totalPlayers = player.at("totalPlayers").get<int>();
 
                 players.emplace_back(name, chips, index, strategy, totalPlayers, randomStrategy);
 
