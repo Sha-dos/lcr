@@ -17,14 +17,15 @@ class Player {
 public:
     // Enum defining different strategies for the 'Wild' dice roll
     enum PlayStyle {
-        StealFromHighest,         // Always steal from the player with the most chips
-        StealFromLowest,          // Always steal from the player with the fewest chips (but > 0)
-        StealFromOpposite,        // Wild cancels C > L > R, otherwise steals from opposite
-        StealOppositeConditional  // RESTORED: Wild cancels C only, otherwise steals from opposite
+        StealFromHighest,          // Always steal from the player with the most chips
+        StealFromLowest,           // Always steal from the player with the fewest chips (but > 0)
+        StealFromOpposite,         // Wild cancels C > L > R, otherwise steals from opposite
+        StealOppositeConditional,  // RESTORED: Wild cancels C only, otherwise steals from opposite
+        Random
     };
 
     // Constructor
-    Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers, bool randomStrategy);
+    Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers);
 
     // Modifiers for player's chips
     void addChips(int num);
@@ -35,7 +36,6 @@ public:
     int getIndex() const;
     std::string getName() const;
     PlayStyle getPlayStyle() const;
-    bool randomStrategy = false;
 
     void setStrategy(PlayStyle newStrategy) {
         this->playStyle = newStrategy;
@@ -58,6 +58,7 @@ public:
             case StealFromLowest: return "StealFromLowest";
             case StealFromOpposite: return "StealFromOpposite";
             case StealOppositeConditional: return "StealOppositeConditional";
+            case Random: return "Random";
             default: return "Unknown";
         }
     }
@@ -76,7 +77,6 @@ public:
               index(other.index),
               playStyle(other.playStyle),
               totalNumPlayers(other.totalNumPlayers),
-              randomStrategy(other.randomStrategy),
               wins(other.wins.load(std::memory_order_relaxed))
     {}
     Player& operator=
@@ -87,7 +87,6 @@ public:
             index = other.index;
             playStyle = other.playStyle;
             totalNumPlayers = other.totalNumPlayers;
-            randomStrategy = other.randomStrategy;
 
             wins.store(other.wins.load(std::memory_order_relaxed), std::memory_order_relaxed);
         }
@@ -100,8 +99,7 @@ public:
               index(other.index),
               playStyle(other.playStyle),
               totalNumPlayers(other.totalNumPlayers),
-              randomStrategy(other.randomStrategy),
-            // Load value from other's atomic and initialize this one
+              // Load value from other's atomic and initialize this one
               wins(other.wins.load(std::memory_order_relaxed))
     {}
 
@@ -112,7 +110,6 @@ public:
             index = other.index;
             playStyle = other.playStyle;
             totalNumPlayers = other.totalNumPlayers;
-            randomStrategy = other.randomStrategy;
             wins.store(other.wins.load(std::memory_order_relaxed), std::memory_order_relaxed);
         }
         return *this;
@@ -131,12 +128,13 @@ NLOHMANN_JSON_SERIALIZE_ENUM(Player::PlayStyle, {
     {Player::PlayStyle::StealFromHighest, "StealFromHighest"},
     {Player::PlayStyle::StealFromLowest, "StealFromLowest"},
     {Player::PlayStyle::StealFromOpposite, "StealFromOpposite"},
-    {Player::PlayStyle::StealOppositeConditional, "StealOppositeConditional"}
+    {Player::PlayStyle::StealOppositeConditional, "StealOppositeConditional"},
+    {Player::PlayStyle::Random, "Random"}
 })
 
 // Constructor implementation
-Player::Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers, bool randomStrategy)
-        : name(name), chips(chips), index(index), playStyle(playStyle), totalNumPlayers(totalPlayers), randomStrategy(randomStrategy), wins(0) {}
+Player::Player(std::string name, int chips, int index, PlayStyle playStyle, int totalPlayers)
+        : name(name), chips(chips), index(index), playStyle(playStyle), totalNumPlayers(totalPlayers), wins(0) {}
 
 inline void Player::addChips(int num) {
     this->chips += num;

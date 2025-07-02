@@ -1,5 +1,5 @@
 .PHONY all: build
-	cd build && ./lcr ../config.json
+	cd build && ./lcr ${CONFIG}
 
 .PHONY build:
 	cd build && cmake .. && make lcr

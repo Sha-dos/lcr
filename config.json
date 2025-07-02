@@ -1,59 +1,59 @@
 {
-  "numSimulations": 100,
-  "startingPlayer": -1,
+  "numSimulations": 10000,
+  "startingPlayer": 1,
   "outputType": "Totals",
-  "replayCount": 9999,
+  "runEachSim": 100,
   "totalPlayers": 10,
   "players": [
     {
       "name": "Player 1",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     },
     {
       "name": "Player 2",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     },
     {
       "name": "Player 3",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     },
     {
       "name": "Player 4",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     },
     {
       "name": "Player 5",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     },
     {
       "name": "Player 6",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     },
     {
       "name": "Player 7",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     },
     {
       "name": "Player 8",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     },
     {
       "name": "Player 9",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     },
     {
       "name": "Player 10",
       "chips": 3,
-      "strategy": -1
+      "strategy": 1
     }
   ]
 }

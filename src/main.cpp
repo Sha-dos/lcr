@@ -14,19 +14,21 @@
 
 using nlohmann::json;
 
+/**
+ * @brief Main function that runs LCR (Left Center Right) game simulations
+ *
+ * This function can operate in two modes:
+ * 1. With JSON configuration file provided as command line argument
+ * 2. With default hardcoded parameters if no JSON file is provided
+ *
+ * The program supports multithreaded simulations with progress tracking,
+ * strategy analysis, and CSV output of results.
+ *
+ * @param argc Number of command line arguments
+ * @param argv Array of command line arguments, argv[1] should be JSON config file path
+ * @return int Exit status (0 for success, 1 for error)
+ */
 int main(int argc, char* argv[]) {
-//    std::vector<Player> testPlayers = {
-//        Player("Player 1", 0, 0, Player::PlayStyle::StealFromHighest, 3),
-//        Player("Player 2", 1, 1, Player::PlayStyle::StealFromHighest, 3),
-//        Player("Player 3", 0, 2, Player::PlayStyle::StealFromHighest, 3)
-//    };
-//
-//    Game game(testPlayers);
-//
-//    game.play(0);
-//
-//    return 0;
-
     // --- Random ---
     std::random_device rd;
     std::mt19937 rng(rd());
@@ -37,7 +39,7 @@ int main(int argc, char* argv[]) {
     // --- Initialize Game Parameters ---
     int numSimulations;
     Output::OutputType outputType = Output::OutputType::All;
-    int replayCount = 0;
+    int runEachSim = 1;
     bool randomStarter = false;
 
     int barWidth = 70;
@@ -46,75 +48,97 @@ int main(int argc, char* argv[]) {
 
     int startingPlayer = 1;
 
-    std::string jsonFilePath = argv[1];
-    std::ifstream jsonFile(jsonFilePath);
-    if (jsonFile.is_open()) {
-        try {
-            json configData;
-            jsonFile >> configData;
+    if (argc > 1) {
+        std::string jsonFilePath = argv[1];
+        std::ifstream jsonFile(jsonFilePath);
+        if (jsonFile.is_open()) {
+            try {
+                json configData;
+                jsonFile >> configData;
 
-            // Read the number of simulations
-            numSimulations = configData.at("numSimulations").get<int>();
+                // Read the number of simulations
+                numSimulations = configData.at("numSimulations").get<int>();
 
-            startingPlayer = configData.at("startingPlayer").get<int>();
+                startingPlayer = configData.at("startingPlayer").get<int>();
 
-            outputType = Output::stringToOutputType(configData.at("outputType").get<std::string>());
+                outputType = Output::stringToOutputType(configData.at("outputType").get<std::string>());
 
-            replayCount = configData.at("replayCount").get<int>();
+                runEachSim = configData.at("runEachSim").get<int>();
 
-            int totalPlayers = configData.at("totalPlayers").get<int>();
+                int totalPlayers = configData.at("totalPlayers").get<int>();
 
-            // Read the players array
-            int index = 0;
-            for (const auto& player : configData.at("players")) {
-                std::string name = player.at("name").get<std::string>();
-                int chips = player.at("chips").get<int>();
-                Player::PlayStyle strategy;
+                // Read the players array
+                int index = 0;
+                for (const auto& player : configData.at("players")) {
+                    std::string name = player.at("name").get<std::string>();
+                    int chips = player.at("chips").get<int>();
+                    Player::PlayStyle strategy;
 
-                bool randomStrategy = false;
-                if (player.at("strategy").get<int>() == -1) {
-                    randomStrategy = true;
-                    std::uniform_int_distribution<int> dist(0, Player::PlayStyle::StealOppositeConditional);
-                    strategy = static_cast<Player::PlayStyle>(dist(rng)); // Random strategy
-                } else {
-                    strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>() - 1);
+                    if (player.at("strategy").get<int>() == -1) {
+                        strategy = Player::PlayStyle::Random;
+                    } else {
+                        strategy = static_cast<Player::PlayStyle>(player.at("strategy").get<int>() - 1);
+                    }
+
+                    players.emplace_back(name, chips, index, strategy, totalPlayers);
+
+                    index++;
                 }
 
-                players.emplace_back(name, chips, index, strategy, totalPlayers, randomStrategy);
-
-                index++;
+                std::cout << "Imported " << players.size() << " players and " << numSimulations << " simulations from JSON file." << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << "Error parsing JSON file: " << e.what() << std::endl;
+                return 1;
             }
-
-            if (startingPlayer < 0) {
-                randomStarter = true;
-                std::uniform_int_distribution<int> playerDist(1, players.size());
-                startingPlayer = playerDist(rng);
-            }
-
-            std::cout << "Imported " << players.size() << " players and " << numSimulations << " simulations from JSON file." << std::endl;
-        } catch (const std::exception& e) {
-            std::cerr << "Error parsing JSON file: " << e.what() << std::endl;
+        } else {
+            std::cerr << "Error opening JSON file: " << jsonFilePath << std::endl;
             return 1;
         }
+    } else {
+        std::cout << "No JSON file provided" << std::endl;
+
+        numSimulations = 10'000;
+        startingPlayer = -1;
+        randomStarter = false;
+        outputType = Output::OutputType::Totals;
+        runEachSim = 100;
+
+        players = {
+            Player("Player 1", 3, 0, Player::Random, 10),
+            Player("Player 2", 3, 1, Player::Random, 10),
+            Player("Player 3", 3, 2, Player::Random, 10),
+            Player("Player 4", 3, 3, Player::Random, 10),
+            Player("Player 5", 3, 4, Player::Random, 10),
+            Player("Player 6", 3, 5, Player::Random, 10),
+            Player("Player 7", 3, 6, Player::Random, 10),
+            Player("Player 8", 3, 7, Player::Random, 10),
+            Player("Player 9", 3, 8, Player::Random, 10),
+            Player("Player 10", 3, 9, Player::Random, 10),
+        };
     }
 
     // --- Run Simulations ---
     std::vector<Result> allResults;
-    allResults.reserve(numSimulations * (replayCount + 1)); // Reserve space for all results
+    allResults.reserve(numSimulations * (runEachSim)); // Reserve space for all results
     std::mutex results_mutex; // Protect access to allResults
 
     std::atomic<int> totalGamesRun{0};
     std::cout << "\nRunning simulations..." << std::endl;
 
+    if (startingPlayer < 0) {
+        randomStarter = true;
+        std::uniform_int_distribution<int> playerDist(1, players.size());
+        startingPlayer = playerDist(rng);
+    }
     std::rotate(players.begin(), players.begin() + startingPlayer - 1, players.end());
 
-    int totalSimulations = numSimulations * (replayCount + 1);
+    int totalSimulations = numSimulations * (runEachSim);
     int maxThreads = std::thread::hardware_concurrency(); // Use available CPU cores
     maxThreads = maxThreads > 0 ? maxThreads : 4; // Fallback if detection fails
 
     ThreadPool pool(maxThreads);
 
-// Create atomic counters for tracking wins by strategy
+    // Create atomic counters for tracking wins by strategy
     std::atomic<int> winsStealFromHighest{0};
     std::atomic<int> winsStealFromLowest{0};
     std::atomic<int> winsStealFromOpposite{0};
@@ -122,19 +146,9 @@ int main(int argc, char* argv[]) {
 
     std::mutex playerMutex; // For updating player win counts
 
-// Submit all tasks to thread pool
-    for (int j = 0; j <= replayCount; ++j) {
+    // Submit all tasks to thread pool
+    for (int j = 1; j <= runEachSim; ++j) {
         std::vector<Player> replayPlayers = players;
-
-        // If replay count > 0, randomize strategies at each replay
-        if (j > 0 && replayCount > 0) {
-            for (Player &p : replayPlayers) {
-                if (p.randomStrategy) {
-                    std::uniform_int_distribution<int> dist(0, Player::PlayStyle::StealOppositeConditional);
-                    p.setStrategy(static_cast<Player::PlayStyle>(dist(rng)));
-                }
-            }
-        }
 
         for (int i = 0; i < numSimulations; ++i) {
             if (randomStarter) {
@@ -145,7 +159,21 @@ int main(int argc, char* argv[]) {
 
             pool.enqueue([&, replayPlayers]() {
                 try {
-                    Game lcrGame((std::vector<Player>(replayPlayers)));
+                    // Create a copy for this simulation and randomize Random strategies
+                    std::vector<Player> simPlayers = replayPlayers;
+
+                    // Create local RNG for this thread
+                    std::random_device local_rd;
+                    std::mt19937 local_rng(local_rd());
+
+                    for (Player &p : simPlayers) {
+                        if (p.getPlayStyle() == Player::PlayStyle::Random) {
+                            std::uniform_int_distribution<int> dist(0, Player::PlayStyle::StealOppositeConditional);
+                            p.setStrategy(static_cast<Player::PlayStyle>(dist(local_rng)));
+                        }
+                    }
+
+                    Game lcrGame(simPlayers);
                     int gameId = totalGamesRun.fetch_add(1);
 
                     // Play the game and store the result
@@ -173,11 +201,6 @@ int main(int argc, char* argv[]) {
 
                         if (it != players.end()) {
                             it->addWin();
-                        } else {
-                            // Probably a draw
-                            // If a winner from a simulation isn't found in the main player list. This indicates a potential logic issue.
-//                            std::cerr << "Error: Winner '" << result.winnerName << "' from game "
-//                                      << result.gameId << " not found in main player list!" << std::endl;
                         }
                     }
 
@@ -192,7 +215,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-// Progress bar update thread
+    // Progress bar update thread
     std::thread progressThread([&]() {
         using namespace std::chrono;
         auto startTime = high_resolution_clock::now();
@@ -278,12 +301,12 @@ int main(int argc, char* argv[]) {
         std::cout.flush();
     });
 
-// Wait for all tasks to complete
+    // Wait for all tasks to complete
     while(totalGamesRun < totalSimulations) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-// Complete the progress bar
+    // Complete the progress bar
     if (progressThread.joinable()) {
         progressThread.join();
     }
@@ -298,7 +321,6 @@ int main(int argc, char* argv[]) {
     std::chrono::duration<double> elapsedSinceStart = end - start;
 
     std::cout << "\nSimulations complete. " << totalSimulations << " simulations ran in " << elapsedSinceStart.count() << "s" << std::endl;
-
 
     // --- Display Results ---
     std::cout << "\nWins by strategy (sorted by most to least):" << std::endl;
@@ -335,34 +357,12 @@ int main(int argc, char* argv[]) {
 
     std::cout << "\nWins by player:" << std::endl;
     for (const Player& player : players) {
+        double winPercentage = (totalWins > 0) ? (static_cast<double>(player.getWins()) / totalGames) * 100.0 : 0.0;
         std::cout << "  " << std::left << std::setw(columnWidth) << player.getName()
                   << std::setw(numberWidth) << player.getWins() << " ("
-                  << Player::playStyleToString(player.getPlayStyle()) << ")" << std::endl;
+                  << Player::playStyleToString(player.getPlayStyle()) << ") "
+                  << std::setprecision(2) << winPercentage << "%" << std::endl;
     }
-
-    // --- Export Results to JSON ---
-//    std::string outputFilename = "lcr_simulation_results.json";
-//    std::cout << "Exporting results to " << outputFilename << "..." << std::endl;
-//
-//    try {
-//        json resultsJson = allResults; // Use the nlohmann magic to convert vector<Result> to json array
-//
-//        std::ofstream outFile(outputFilename);
-//        if (!outFile.is_open()) {
-//            throw std::runtime_error("Could not open file for writing: " + outputFilename);
-//        }
-//        // Write the JSON to the file with pretty printing (indentation)
-//        outFile << std::setw(4) << resultsJson << std::endl;
-//        outFile.close();
-//        std::cout << "Results successfully exported." << std::endl;
-//
-//    } catch (const json::exception& e) {
-//        std::cerr << "JSON Error: " <<  e.what() << std::endl;
-//        return 1;
-//    } catch (const std::exception& e) {
-//        std::cerr << "File I/O Error: " << e.what() << std::endl;
-//        return 1;
-//    }
 
     // --- Export Results to CSV ---
     std::string outputFilename = "lcr_simulation_results.csv";
