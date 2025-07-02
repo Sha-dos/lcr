@@ -115,11 +115,6 @@ int main(int argc, char* argv[]) {
             Player("Player 9", 3, 8, Player::Random, 10),
             Player("Player 10", 3, 9, Player::Random, 10),
         };
-
-        players = {
-            Player("Player 1", 3, 0, Player::Random, 2),
-            Player("Player 2", 3, 1, Player::Random, 2)
-        };
     }
 
     // --- Run Simulations ---
