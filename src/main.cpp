@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
     // --- Initialize Game Parameters ---
     int numSimulations;
     Output::OutputType outputType = Output::OutputType::All;
-    int runEachSim = 1;
+    int runEachSim;
     bool randomStarter = false;
 
     int barWidth = 70;
@@ -115,6 +115,11 @@ int main(int argc, char* argv[]) {
             Player("Player 9", 3, 8, Player::Random, 10),
             Player("Player 10", 3, 9, Player::Random, 10),
         };
+
+        players = {
+            Player("Player 1", 3, 0, Player::Random, 2),
+            Player("Player 2", 3, 1, Player::Random, 2)
+        };
     }
 
     // --- Run Simulations ---
@@ -147,30 +152,37 @@ int main(int argc, char* argv[]) {
     std::mutex playerMutex; // For updating player win counts
 
     // Submit all tasks to thread pool
-    for (int j = 1; j <= runEachSim; ++j) {
-        std::vector<Player> replayPlayers = players;
+    for (int i = 0; i < numSimulations; ++i) {
+        std::vector<Player> batchPlayers = players;
+        int batchStartingPlayer = startingPlayer;
 
-        for (int i = 0; i < numSimulations; ++i) {
-            if (randomStarter) {
-                std::uniform_int_distribution<int> playerDist(1, players.size());
-                startingPlayer = playerDist(rng);
-                std::rotate(players.begin(), players.begin() + startingPlayer - 1, players.end());
+        // Randomize once per batch (not per simulation)
+        std::random_device batch_rd;
+        std::mt19937 batch_rng(batch_rd());
+
+        // Set random starting player for this batch
+        if (randomStarter) {
+            std::uniform_int_distribution<int> playerDist(1, players.size());
+            batchStartingPlayer = playerDist(batch_rng);
+        }
+
+        // Set random strategies for this batch
+        for (Player &p : batchPlayers) {
+            if (p.getPlayStyle() == Player::PlayStyle::Random) {
+                std::uniform_int_distribution<int> dist(0, Player::PlayStyle::StealOppositeConditional);
+                p.setStrategy(static_cast<Player::PlayStyle>(dist(batch_rng)));
             }
+        }
 
-            pool.enqueue([&, replayPlayers]() {
+        for (int j = 0; j < runEachSim; ++j) {
+            pool.enqueue([&, batchPlayers, batchStartingPlayer]() {
                 try {
-                    // Create a copy for this simulation and randomize Random strategies
-                    std::vector<Player> simPlayers = replayPlayers;
+                    // Create identical copy for this replay
+                    std::vector<Player> simPlayers = batchPlayers;
 
-                    // Create local RNG for this thread
-                    std::random_device local_rd;
-                    std::mt19937 local_rng(local_rd());
-
-                    for (Player &p : simPlayers) {
-                        if (p.getPlayStyle() == Player::PlayStyle::Random) {
-                            std::uniform_int_distribution<int> dist(0, Player::PlayStyle::StealOppositeConditional);
-                            p.setStrategy(static_cast<Player::PlayStyle>(dist(local_rng)));
-                        }
+                    // Apply the same starting player rotation for all replays in this batch
+                    if (batchStartingPlayer != startingPlayer) {
+                        std::rotate(simPlayers.begin(), simPlayers.begin() + batchStartingPlayer - 1, simPlayers.end());
                     }
 
                     Game lcrGame(simPlayers);
