@@ -11,6 +11,7 @@
 #include <queue>
 #include <functional>
 #include "../include/threadPool.h"
+#include "../include/helpers.h"
 
 using nlohmann::json;
 
@@ -119,7 +120,7 @@ int main(int argc, char* argv[]) {
 
     // --- Run Simulations ---
     std::vector<Result> allResults;
-    allResults.reserve(numSimulations * (runEachSim)); // Reserve space for all results
+    allResults.reserve(numSimulations * (runEachSim));
     std::mutex results_mutex; // Protect access to allResults
 
     std::atomic<int> totalGamesRun{0};
@@ -278,7 +279,8 @@ int main(int argc, char* argv[]) {
                 else std::cout << " " << std::flush;
             }
             std::cout << "] " << static_cast<int>(progress * 100.0) << "% " << std::flush;
-            std::cout << "(" << currentGamesRun << "/" << totalSimulations << ")\n" << std::flush;
+            std::cout << "(" << Helpers::formatWithCommas(currentGamesRun) << "/"
+                << Helpers::formatWithCommas(totalSimulations) << ")\n" << std::flush;
 
             // Stats
             std::cout << std::fixed << std::setprecision(1); // For sims/sec formatting
@@ -288,10 +290,10 @@ int main(int argc, char* argv[]) {
 
             // Live Strategy Wins
             std::cout << "Current Wins by Strategy:\n" << std::flush;
-            std::cout << "  Steal From Highest:         " << winsStealFromHighest.load(std::memory_order_relaxed) << "\n" << std::flush;
-            std::cout << "  Steal From Lowest:          " << winsStealFromLowest.load(std::memory_order_relaxed) << "\n" << std::flush;
-            std::cout << "  Steal From Opposite:        " << winsStealFromOpposite.load(std::memory_order_relaxed) << "\n" << std::flush;
-            std::cout << "  Steal Opposite Conditional: " << winsStealOppositeConditional.load(std::memory_order_relaxed) << "\n" << std::flush;
+            std::cout << "  Steal From Highest:         " << Helpers::formatWithCommas(winsStealFromHighest.load(std::memory_order_relaxed)) << "\n" << std::flush;
+            std::cout << "  Steal From Lowest:          " << Helpers::formatWithCommas(winsStealFromLowest.load(std::memory_order_relaxed)) << "\n" << std::flush;
+            std::cout << "  Steal From Opposite:        " << Helpers::formatWithCommas(winsStealFromOpposite.load(std::memory_order_relaxed)) << "\n" << std::flush;
+            std::cout << "  Steal Opposite Conditional: " << Helpers::formatWithCommas(winsStealOppositeConditional.load(std::memory_order_relaxed)) << "\n" << std::flush;
 
             // Update interval
             std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Update 5 times/sec
@@ -303,7 +305,7 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < barWidth; ++i) {
             std::cout << "=" << std::flush;
         }
-        std::cout << "] 100% (" << totalGamesRun.load(std::memory_order_relaxed) << "/" << totalSimulations << ")\n" << std::flush;
+        std::cout << "] 100% (" << Helpers::formatWithCommas(totalGamesRun.load(std::memory_order_relaxed)) << "/" << totalSimulations << ")\n" << std::flush;
 
         std::cout.flush();
     });
@@ -327,7 +329,7 @@ int main(int argc, char* argv[]) {
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsedSinceStart = end - start;
 
-    std::cout << "\nSimulations complete. " << totalSimulations << " simulations ran in " << elapsedSinceStart.count() << "s" << std::endl;
+    std::cout << "\nSimulations complete. " << Helpers::formatWithCommas(totalSimulations) << " simulations ran in " << elapsedSinceStart.count() << "s" << std::endl;
 
     // --- Display Results ---
     std::cout << "\nWins by strategy (sorted by most to least):" << std::endl;
@@ -353,20 +355,20 @@ int main(int argc, char* argv[]) {
     for (const auto& [strategy, wins] : strategyWins) {
         double percentage = (totalWins > 0) ? (static_cast<double>(wins) / (totalWins + draws)) * 100.0 : 0.0;
         std::cout << "  " << std::left << std::setw(columnWidth) << strategy
-                  << std::setw(numberWidth) << wins << " "
+                  << std::setw(numberWidth) << Helpers::formatWithCommas(wins) << " "
                   << std::fixed << std::setprecision(2) << percentage << "%" << std::endl;
     }
 
     double drawPercentage = (totalGames > 0) ? (static_cast<double>(draws) / totalGames) * 100.0 : 0.0;
     std::cout << "  " << std::left << std::setw(columnWidth) << "Draws"
-              << std::setw(numberWidth) << draws << " "
+              << std::setw(numberWidth) << Helpers::formatWithCommas(draws) << " "
               << std::fixed << std::setprecision(2) << drawPercentage << "%" << std::endl;
 
     std::cout << "\nWins by player:" << std::endl;
     for (const Player& player : players) {
         double winPercentage = (totalWins > 0) ? (static_cast<double>(player.getWins()) / totalGames) * 100.0 : 0.0;
         std::cout << "  " << std::left << std::setw(columnWidth) << player.getName()
-                  << std::setw(numberWidth) << player.getWins() << " ("
+                  << std::setw(numberWidth) << Helpers::formatWithCommas(player.getWins()) << " ("
                   << Player::playStyleToString(player.getPlayStyle()) << ") "
                   << std::setprecision(2) << winPercentage << "%" << std::endl;
     }

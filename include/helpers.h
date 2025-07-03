@@ -28,6 +28,8 @@ public:
     // Calculates the index of the player to the left or right of the current player
     // Handles wrapping around the circle.
     static int calculateNeededPlayerIndex(int numOfPlayers, int currentIndex, Direction direction);
+
+    static std::string formatWithCommas(int value);
 };
 
 int Helpers::calculateNeededPlayerIndex(int numOfPlayers, int currentIndex, Helpers::Direction direction) {
@@ -43,6 +45,15 @@ int Helpers::calculateNeededPlayerIndex(int numOfPlayers, int currentIndex, Help
         // Adding numOfPlayers before modulo handles negative result correctly
         return (currentIndex - 1 + numOfPlayers) % numOfPlayers;
     }
+}
+
+std::string Helpers::formatWithCommas(const int value) {
+    std::string number_str = std::to_string(value);
+
+    for (int i = number_str.length() - 3; i > 0; i -= 3)
+        number_str.insert(i, ",");
+
+    return number_str;
 }
 
 #endif //LCR_HELPERS_H
